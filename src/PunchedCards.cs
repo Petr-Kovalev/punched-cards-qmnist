@@ -97,10 +97,10 @@ namespace PunchedCards
                 .Select(punchedCardPerLabel =>
                     new Tuple<IReadOnlyCollection<int>, int>(
                         punchedCardPerLabel.Value
-                            .Select(punchedCard => punchedCard.Value.Count)
+                            .Select(punchedCard => punchedCard.Value.Distinct().Count())
                             .OrderByDescending(count => count)
                             .ToList(),
-                        punchedCardPerLabel.Value.Sum(punchedCard => punchedCard.Value.Count)))
+                        punchedCardPerLabel.Value.Sum(punchedCard => punchedCard.Value.Distinct().Count())))
                 .OrderByDescending(countsAndSum => countsAndSum.Item2)
                 .ToList();
             return string.Join(", ",
