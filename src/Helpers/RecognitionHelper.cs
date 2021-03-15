@@ -10,7 +10,7 @@ namespace PunchedCards.Helpers
     {
         internal static IEnumerable<KeyValuePair<IBitVector, int>> CountCorrectRecognitions(
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
-            IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<Tuple<IBitVector, int>>>>
+            IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                 punchedCardsCollection,
             IPuncher<string, IBitVector, IBitVector> puncher)
         {
@@ -45,7 +45,7 @@ namespace PunchedCards.Helpers
             return correctRecognitionsPerLabel;
         }
 
-        private static IDictionary<int, AdjacencyMatrix> CalculateAdjacencyMatrices(IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<Tuple<IBitVector, int>>>> punchedCardsCollection)
+        private static IDictionary<int, AdjacencyMatrix> CalculateAdjacencyMatrices(IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection)
         {
             return punchedCardsCollection
                 .AsParallel()
@@ -65,7 +65,7 @@ namespace PunchedCards.Helpers
 
         internal static IDictionary<IBitVector, IDictionary<string, double>>
             CalculateMatchingScoresPerLabelPerPunchedCard(
-                IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<Tuple<IBitVector, int>>>>
+                IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                     punchedCardsCollection,
                 IBitVector input,
                 IPuncher<string, IBitVector, IBitVector> puncher,
@@ -82,7 +82,7 @@ namespace PunchedCards.Helpers
                         matchingScoresPerLabelPerPunchedCard,
                         punchedCardsCollectionItem.Key,
                         label.Key,
-                        label.Value.Sum(t => t.Item2),
+                        label.Value.Count,
                         adjacencyMatrices[GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key)],
                         punchedInput);
                 }
@@ -117,11 +117,10 @@ namespace PunchedCards.Helpers
                 punchedInput.ActiveBitIndices) / samplesCount;
         }
 
-        internal static double CalculateBitVectorsScore(IReadOnlyCollection<Tuple<IBitVector, int>> bitVectors)
+        internal static double CalculateBitVectorsScore(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            var samplesCount = bitVectors.Sum(t => t.Item2);
             return (double)CalculateAdjacencyMatrixScore(
-                new AdjacencyMatrix(bitVectors)) / samplesCount;
+                new AdjacencyMatrix(bitVectors)) / bitVectors.Count;
         }
 
         private static long CalculateAdjacencyMatrixScore(AdjacencyMatrix adjacencyMatrix)

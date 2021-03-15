@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using PunchedCards.BitVectors;
 
@@ -7,9 +6,9 @@ namespace PunchedCards.Helpers
 {
     internal sealed class AdjacencyMatrix
     {
-        internal AdjacencyMatrix(IReadOnlyCollection<Tuple<IBitVector, int>> bitVectors)
+        internal AdjacencyMatrix(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            Size = bitVectors.First().Item1.Count;
+            Size = bitVectors.First().Count;
             Matrix = new int[Size, Size];
             PopulateAdjacencyMatrix(Matrix, bitVectors, out var halfSum);
             HalfSum = halfSum;
@@ -23,15 +22,15 @@ namespace PunchedCards.Helpers
 
         private static void PopulateAdjacencyMatrix(
             int[,] matrix,
-            IEnumerable<Tuple<IBitVector, int>> bitVectors,
+            IEnumerable<IBitVector> bitVectors,
             out long halfSum)
         {
             halfSum = 0;
 
             foreach (var bitVector in bitVectors)
             {
-                var activeBitIndices = bitVector.Item1.ActiveBitIndices;
-                var numberOfOccurrences = bitVector.Item2;
+                var activeBitIndices = bitVector.ActiveBitIndices;
+                var numberOfOccurrences = 1;
                 for (var i = 0; i < activeBitIndices.Count; i++)
                 {
                     for (var j = i; j < activeBitIndices.Count; j++)
