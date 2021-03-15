@@ -47,17 +47,15 @@ namespace PunchedCards.Helpers
 
         private static IDictionary<int, AdjacencyMatrix> CalculateAdjacencyMatrices(IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<Tuple<IBitVector, int>>>> punchedCardsCollection)
         {
-            var adjacencyMatrices = new Dictionary<int, AdjacencyMatrix>();
-
-            foreach (var punchedCardsCollectionItem in punchedCardsCollection)
-            {
-                foreach (var label in punchedCardsCollectionItem.Value)
-                {
-                    adjacencyMatrices.Add(GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key), new AdjacencyMatrix(label.Value));
-                }
-            }
-
-            return adjacencyMatrices;
+            return punchedCardsCollection
+                .AsParallel()
+                .SelectMany(punchedCardsCollectionItem =>
+                    punchedCardsCollectionItem.Value
+                        .Select(label =>
+                            new Tuple<int, AdjacencyMatrix>(
+                                GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key),
+                                new AdjacencyMatrix(label.Value))))
+                .ToDictionary(t => t.Item1, t => t.Item2);
         }
 
         private static int GetAdjacencyMatrixKey(string punchedCardsCollectionItemKey, IBitVector labelKey)
