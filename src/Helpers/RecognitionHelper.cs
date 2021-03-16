@@ -130,36 +130,41 @@ namespace PunchedCards.Helpers
 
         private static long CalculateAdjacencyMatrixScore(AdjacencyMatrix adjacencyMatrix, IReadOnlyList<int> activeBitIndices)
         {
-            return 2 * ActiveBitConnectionsHalfSum(adjacencyMatrix, activeBitIndices) - adjacencyMatrix.HalfSum;
+            var activeBitConnectionsHalfSum = CalculateActiveBitConnectionsHalfSum(adjacencyMatrix, activeBitIndices);
+            return 
+                // Active connections
+                activeBitConnectionsHalfSum -
+                // Inactive connections
+                (adjacencyMatrix.HalfSum - activeBitConnectionsHalfSum);
         }
 
-        private static long ActiveBitConnectionsHalfSum(AdjacencyMatrix adjacencyMatrix, IReadOnlyList<int> activeBitIndices)
+        private static long CalculateActiveBitConnectionsHalfSum(AdjacencyMatrix adjacencyMatrix, IReadOnlyList<int> activeBitIndices)
         {
-            long activeBitConnectionsSum = 0;
+            long activeBitConnectionsHalfSum = 0;
 
             foreach (var activeBitIndex in activeBitIndices)
             {
                 for (var i = 0; i < activeBitIndex; i++)
                 {
-                    activeBitConnectionsSum += adjacencyMatrix.Matrix[i, activeBitIndex];
+                    activeBitConnectionsHalfSum += adjacencyMatrix.Matrix[i, activeBitIndex];
                 }
 
                 for (var j = activeBitIndex; j < adjacencyMatrix.Size; j++)
                 {
-                    activeBitConnectionsSum += adjacencyMatrix.Matrix[activeBitIndex, j];
+                    activeBitConnectionsHalfSum += adjacencyMatrix.Matrix[activeBitIndex, j];
                 }
             }
 
             var activeBitIndicesCount = activeBitIndices.Count;
-            for (var activeBitIndex = 0; activeBitIndex < activeBitIndicesCount; activeBitIndex++)
+            for (var firstActiveBitIndex = 0; firstActiveBitIndex < activeBitIndicesCount; firstActiveBitIndex++)
             {
-                for (var j = activeBitIndex + 1; j < activeBitIndicesCount; j++)
+                for (var secondActiveBitIndex = firstActiveBitIndex + 1; secondActiveBitIndex < activeBitIndicesCount; secondActiveBitIndex++)
                 {
-                    activeBitConnectionsSum -= adjacencyMatrix.Matrix[activeBitIndices[activeBitIndex], activeBitIndices[j]];
+                    activeBitConnectionsHalfSum -= adjacencyMatrix.Matrix[activeBitIndices[firstActiveBitIndex], activeBitIndices[secondActiveBitIndex]];
                 }
             }
 
-            return activeBitConnectionsSum;
+            return activeBitConnectionsHalfSum;
         }
     }
 }
