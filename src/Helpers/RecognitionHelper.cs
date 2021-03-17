@@ -58,11 +58,6 @@ namespace PunchedCards.Helpers
                 .ToDictionary(t => t.Item1, t => t.Item2);
         }
 
-        private static int GetAdjacencyMatrixKey(string punchedCardsCollectionItemKey, IBitVector labelKey)
-        {
-            return HashCode.Combine(punchedCardsCollectionItemKey, labelKey);
-        }
-
         internal static IDictionary<IBitVector, IDictionary<string, double>>
             CalculateMatchingScoresPerLabelPerPunchedCard(
                 IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
@@ -91,6 +86,11 @@ namespace PunchedCards.Helpers
             return matchingScoresPerLabelPerPunchedCard;
         }
 
+        private static int GetAdjacencyMatrixKey(string punchedCardsCollectionItemKey, IBitVector labelKey)
+        {
+            return HashCode.Combine(punchedCardsCollectionItemKey, labelKey);
+        }
+
         private static void ProcessTheSpecificLabel(
             IDictionary<IBitVector, IDictionary<string, double>> matchingScoresPerLabelPerPunchedCard,
             string punchedCardKey,
@@ -112,14 +112,14 @@ namespace PunchedCards.Helpers
 
         internal static double CalculateMatchingScore(IBitVector punchedInput, AdjacencyMatrix adjacencyMatrix, int samplesCount)
         {
-            return (double)CalculateAdjacencyMatrixScore(
+            return (double) CalculateAdjacencyMatrixScore(
                 adjacencyMatrix,
                 punchedInput.ActiveBitIndices) / samplesCount;
         }
 
         internal static double CalculateBitVectorsScore(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            return (double)CalculateAdjacencyMatrixScore(
+            return (double) CalculateAdjacencyMatrixScore(
                 new AdjacencyMatrix(bitVectors)) / bitVectors.Count;
         }
 
@@ -131,7 +131,7 @@ namespace PunchedCards.Helpers
         private static long CalculateAdjacencyMatrixScore(AdjacencyMatrix adjacencyMatrix, IReadOnlyList<int> activeBitIndices)
         {
             var activeBitConnectionsHalfSum = CalculateActiveBitConnectionsHalfSum(adjacencyMatrix, activeBitIndices);
-            return 
+            return
                 // Active connections
                 activeBitConnectionsHalfSum -
                 // Inactive connections
@@ -158,7 +158,9 @@ namespace PunchedCards.Helpers
             var activeBitIndicesCount = activeBitIndices.Count;
             for (var firstActiveBitIndex = 0; firstActiveBitIndex < activeBitIndicesCount; firstActiveBitIndex++)
             {
-                for (var secondActiveBitIndex = firstActiveBitIndex + 1; secondActiveBitIndex < activeBitIndicesCount; secondActiveBitIndex++)
+                for (var secondActiveBitIndex = firstActiveBitIndex + 1;
+                    secondActiveBitIndex < activeBitIndicesCount;
+                    secondActiveBitIndex++)
                 {
                     activeBitConnectionsHalfSum -= adjacencyMatrix.Matrix[activeBitIndices[firstActiveBitIndex], activeBitIndices[secondActiveBitIndex]];
                 }

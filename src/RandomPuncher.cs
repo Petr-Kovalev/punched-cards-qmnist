@@ -60,25 +60,25 @@ namespace PunchedCards
 
         private void ReinitializeMap(int count)
         {
-            var usedIndexHashSet = new HashSet<int>();
+            var usedIndicesHashSet = new HashSet<int>();
             var rowsCount = count / _bitCount;
             _map = new int[rowsCount][];
 
             for (var i = 0; i < rowsCount; i++)
             {
-                var row = new int[_bitCount];
+                var indices = new List<int>();
                 for (var j = 0; j < _bitCount; j++)
                 {
                     int index;
                     do
                     {
                         index = Random.Next(count);
-                    } while (!usedIndexHashSet.Add(index));
+                    } while (!usedIndicesHashSet.Add(index));
 
-                    row[j] = index;
+                    indices.Add(index);
                 }
 
-                _map[i] = row;
+                _map[i] = indices.OrderBy(index => index).ToArray();
             }
         }
     }
