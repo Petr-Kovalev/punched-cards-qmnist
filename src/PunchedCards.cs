@@ -16,7 +16,7 @@ namespace PunchedCards
             var trainingData = DataHelper.ReadTrainingData(BitVectorFactory).ToList();
             var testData = DataHelper.ReadTestData(BitVectorFactory).ToList();
 
-            var punchedCardBitLengths = new[] {32, 64, 128, 256, 512, 1024, 2048, 4096};
+            var punchedCardBitLengths = new[] {8, 16, 32, 64, 128, 256};
 
             const bool enableTimeLogging = false;
 
@@ -52,7 +52,7 @@ namespace PunchedCards
                 Console.WriteLine();
 
                 Console.WriteLine("Top punched cards per label:");
-                WriteTrainingAndTestResults(GetTopPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, 1), trainingData, testData, puncher);
+                WriteTrainingAndTestResults(GetTopPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, 64), trainingData, testData, puncher);
                 if (enableTimeLogging)
                 {
                     Console.WriteLine($"Calculation time: {(int)stopwatch.Elapsed.TotalSeconds} seconds");
