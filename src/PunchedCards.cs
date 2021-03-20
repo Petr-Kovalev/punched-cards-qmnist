@@ -180,8 +180,10 @@ namespace PunchedCards
                 {
                     punchedCardsPerKeyPerLabel.Add(key,
                         GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
-                            new Tuple<IPunchedCard<string, IBitVector>, IBitVector>(
-                                puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2))));
+                                new Tuple<IPunchedCard<string, IBitVector>, IBitVector>(
+                                    puncher.Punch(key, trainingDataItem.Item1),
+                                    trainingDataItem.Item2))
+                            .Where(punchedCardInput => punchedCardInput.Item1.Input.ActiveBitIndices.Count > 0)));
                 });
             return punchedCardsPerKeyPerLabel;
         }
