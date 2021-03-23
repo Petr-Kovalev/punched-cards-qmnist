@@ -10,7 +10,7 @@ namespace PunchedCards.Helpers
 
         internal AdjacencyMatrix(IEnumerable<IBitVector> bitVectors)
         {
-            _adjacencyMatrix = PopulateAdjacencyMatrix(bitVectors, out var size, out var halfSum);
+            _adjacencyMatrix = CalculateAdjacencyMatrix(bitVectors, out var size, out var halfSum);
             Size = size;
             HalfSum = halfSum;
         }
@@ -21,7 +21,7 @@ namespace PunchedCards.Helpers
 
         public ulong HalfSum { get; }
 
-        private static uint[,] PopulateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size, out ulong halfSum)
+        private static uint[,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size, out ulong halfSum)
         {
             uint[,] adjacencyMatrix = null;
             size = 0;
@@ -37,7 +37,7 @@ namespace PunchedCards.Helpers
 
                 if (bitVector.Count == 0 || bitVector.Count != size)
                 {
-                    throw new ArgumentException(nameof(bitVectors));
+                    throw new ArgumentException("Invalid Count of bit vector!", nameof(bitVectors));
                 }
 
                 var activeBitIndices = bitVector.ActiveBitIndices;
