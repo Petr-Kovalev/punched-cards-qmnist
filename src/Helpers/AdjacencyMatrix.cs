@@ -1,30 +1,44 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
-    internal sealed class AdjacencyMatrix
+    internal sealed class AdjacencyMatrix : IAdjacencyMatrix
     {
+        private readonly uint[,] _adjacencyMatrix;
+
         internal AdjacencyMatrix(IEnumerable<IBitVector> bitVectors)
         {
-            Matrix = PopulateAdjacencyMatrix(bitVectors, out var halfSum);
+            _adjacencyMatrix = PopulateAdjacencyMatrix(bitVectors, out var size, out var halfSum);
+            Size = size;
             HalfSum = halfSum;
         }
 
-        internal int[,] Matrix { get; }
+        public uint Size { get; }
 
-        internal int Size => Matrix.GetLength(0);
+        public uint this[int i, int j] => _adjacencyMatrix[i, j];
 
-        internal long HalfSum { get; }
+        public ulong HalfSum { get; }
 
-        private static int[,] PopulateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out long halfSum)
+        private static uint[,] PopulateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size, out ulong halfSum)
         {
-            int[,] adjacencyMatrix = null;
+            uint[,] adjacencyMatrix = null;
+            size = 0;
             halfSum = 0;
 
             foreach (var bitVector in bitVectors)
             {
-                adjacencyMatrix ??= new int[bitVector.Count, bitVector.Count];
+                if (size == 0)
+                {
+                    size = bitVector.Count;
+                    adjacencyMatrix = new uint[size, size];
+                }
+
+                if (bitVector.Count == 0 || bitVector.Count != size)
+                {
+                    throw new ArgumentException(nameof(bitVectors));
+                }
 
                 var activeBitIndices = bitVector.ActiveBitIndices;
                 for (var i = 0; i < activeBitIndices.Count; i++)

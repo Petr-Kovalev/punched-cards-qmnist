@@ -9,13 +9,13 @@ namespace PunchedCards
     {
         private static readonly Random Random = new(42);
 
-        private readonly int _bitCount;
+        private readonly uint _bitCount;
         private readonly IBitVectorFactory _bitVectorFactory;
 
-        private int _lastCount = int.MinValue;
-        private int[][] _map;
+        private uint _lastCount;
+        private uint[][] _map;
 
-        internal RandomPuncher(int bitCount, IBitVectorFactory bitVectorFactory)
+        internal RandomPuncher(uint bitCount, IBitVectorFactory bitVectorFactory)
         {
             _bitCount = bitCount;
             _bitVectorFactory = bitVectorFactory;
@@ -26,7 +26,7 @@ namespace PunchedCards
             return new PunchedCard<string, IBitVector>(key, Punch(input, _map[int.Parse(key)]));
         }
 
-        public IEnumerable<string> GetKeys(int count)
+        public IEnumerable<string> GetKeys(uint count)
         {
             if (_lastCount != count)
             {
@@ -37,16 +37,16 @@ namespace PunchedCards
             return Enumerable.Range(0, _map.Length).Select(index => index.ToString());
         }
 
-        private IBitVector Punch(IBitVector bitVector, IReadOnlyCollection<int> indices)
+        private IBitVector Punch(IBitVector bitVector, IReadOnlyCollection<uint> indices)
         {
-            return _bitVectorFactory.Create(PunchActiveBitIndices(bitVector, indices), indices.Count);
+            return _bitVectorFactory.Create(PunchActiveBitIndices(bitVector, indices), (uint)indices.Count);
         }
 
-        private static IEnumerable<int> PunchActiveBitIndices(IBitVector bitVector, IEnumerable<int> indices)
+        private static IEnumerable<uint> PunchActiveBitIndices(IBitVector bitVector, IEnumerable<uint> indices)
         {
-            var currentBitIndex = 0;
+            var currentBitIndex = 0U;
 
-            var activeBitIndicesHashSet = new HashSet<int>(bitVector.ActiveBitIndices);
+            var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
             foreach (var index in indices)
             {
                 if (activeBitIndicesHashSet.Contains(index))
@@ -58,21 +58,21 @@ namespace PunchedCards
             }
         }
 
-        private void ReinitializeMap(int count)
+        private void ReinitializeMap(uint count)
         {
-            var usedIndicesHashSet = new HashSet<int>();
+            var usedIndicesHashSet = new HashSet<uint>();
             var rowsCount = count / _bitCount;
-            _map = new int[rowsCount][];
+            _map = new uint[rowsCount][];
 
             for (var i = 0; i < rowsCount; i++)
             {
-                var indices = new List<int>();
+                var indices = new List<uint>();
                 for (var j = 0; j < _bitCount; j++)
                 {
-                    int index;
+                    uint index;
                     do
                     {
-                        index = Random.Next(count);
+                        index = (uint)Random.Next((int)count);
                     } while (!usedIndicesHashSet.Add(index));
 
                     indices.Add(index);

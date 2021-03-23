@@ -5,15 +5,15 @@ namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
-        internal BitVector(IEnumerable<int> activeBitIndices, int count)
+        internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            ActiveBitIndices = new List<int>(activeBitIndices);
+            ActiveBitIndices = new List<uint>(activeBitIndices);
             Count = count;
         }
 
-        public int Count { get; }
+        public uint Count { get; }
 
-        public IReadOnlyList<int> ActiveBitIndices { get; }
+        public IReadOnlyList<uint> ActiveBitIndices { get; }
 
         public override bool Equals(object obj)
         {

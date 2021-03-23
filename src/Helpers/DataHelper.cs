@@ -39,18 +39,18 @@ namespace PunchedCards.Helpers
         {
             const byte height = 28;
             const byte width = 28;
-            const int pixelRepresentationSizeInBits = 8;
+            const uint pixelRepresentationSizeInBits = 8;
 
             return bitVectorFactory.Create(
                 GetActiveBitIndices(imageData, height, width, pixelRepresentationSizeInBits),
                 height * width * pixelRepresentationSizeInBits);
         }
 
-        private static IEnumerable<int> GetActiveBitIndices(
+        private static IEnumerable<uint> GetActiveBitIndices(
             byte[,] imageData,
-            int height,
-            int width,
-            int pixelRepresentationSizeInBits)
+            uint height,
+            uint width,
+            uint pixelRepresentationSizeInBits)
         {
             for (byte rowIndex = 0; rowIndex < height; rowIndex++)
             {
@@ -65,7 +65,7 @@ namespace PunchedCards.Helpers
             }
         }
 
-        private static IEnumerable<int> GetActiveBitIndices(byte b)
+        private static IEnumerable<uint> GetActiveBitIndices(byte b)
         {
             if ((b & 128) != 0)
             {
