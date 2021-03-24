@@ -1,6 +1,6 @@
 ### 'Punched cards' for QMNIST
 
-*Object recognition by sparse random binary data lookup*
+*Object recognition by sparse random binary data lookup. Based on [this article](https://petr-kovalev.medium.com/punched-cards-object-recognition-97523a98857b)*
 
 Performing single-shot QMNIST handwritten digits recognition by lookup over the most different sparse input bit sets of the training data (out of 28⋅28⋅8 = 6272 bits per training sample)
 
