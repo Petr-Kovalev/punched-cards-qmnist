@@ -7,7 +7,7 @@ namespace PunchedCards.BitVectors
     {
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            ActiveBitIndices = new List<uint>(activeBitIndices);
+            ActiveBitIndices = new List<uint>(activeBitIndices.OrderBy(index => index));
             Count = count;
         }
 
@@ -19,8 +19,25 @@ namespace PunchedCards.BitVectors
         {
             return obj is BitVector other &&
                    Count.Equals(other.Count) &&
-                   ActiveBitIndices.Count.Equals(other.ActiveBitIndices.Count) &&
-                   ActiveBitIndices.All(activeBitIndex => other.ActiveBitIndices.Contains(activeBitIndex));
+                   AreActiveBitIndicesEqual(ActiveBitIndices, other.ActiveBitIndices);
+        }
+
+        private static bool AreActiveBitIndicesEqual(IReadOnlyList<uint> first, IReadOnlyList<uint> second)
+        {
+            if (!first.Count.Equals(second.Count))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < first.Count; i++)
+            {
+                if (!first[i].Equals(second[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public override int GetHashCode()
@@ -31,7 +48,7 @@ namespace PunchedCards.BitVectors
             {
                 hashCode = hashCode * 23 + Count.GetHashCode();
 
-                foreach (var activeBitIndex in ActiveBitIndices.OrderBy(index => index))
+                foreach (var activeBitIndex in ActiveBitIndices)
                 {
                     hashCode = hashCode * 23 + activeBitIndex.GetHashCode();
                 }

@@ -39,7 +39,7 @@ namespace PunchedCards
 
         private IBitVector Punch(IBitVector bitVector, IReadOnlyCollection<uint> indices)
         {
-            return _bitVectorFactory.Create(PunchActiveBitIndices(bitVector, indices), (uint)indices.Count);
+            return _bitVectorFactory.Create(PunchActiveBitIndices(bitVector, indices), (uint) indices.Count);
         }
 
         private static IEnumerable<uint> PunchActiveBitIndices(IBitVector bitVector, IEnumerable<uint> indices)
@@ -66,19 +66,19 @@ namespace PunchedCards
 
             for (var i = 0; i < rowsCount; i++)
             {
-                var indices = new List<uint>();
+                var indices = new uint[_bitCount];
                 for (var j = 0; j < _bitCount; j++)
                 {
                     uint index;
                     do
                     {
-                        index = (uint)Random.Next((int)count);
+                        index = (uint) Random.Next((int) count);
                     } while (!usedIndicesHashSet.Add(index));
 
-                    indices.Add(index);
+                    indices[j] = index;
                 }
 
-                _map[i] = indices.OrderBy(index => index).ToArray();
+                _map[i] = indices;
             }
         }
     }
