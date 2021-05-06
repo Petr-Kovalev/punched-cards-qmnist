@@ -31,7 +31,7 @@ namespace PunchedCards.Helpers
         internal static IBitVector GetLabelBitVector(byte label, IBitVectorFactory bitVectorFactory)
         {
             return bitVectorFactory.Create(
-                GetActiveBitIndices(label).Where(i => i >= 4).Select(i => i - 4),
+                GetActiveBitIndices(label).Select(i => 7 - i),
                 4);
         }
 
