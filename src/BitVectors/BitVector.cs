@@ -1,26 +1,28 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
-        internal BitVector(IEnumerable<int> activeBitIndices, int count)
+        private readonly ImmutableArray<uint> _activeBitIndices;
+
+        internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            ActiveBitIndices = new List<int>(activeBitIndices);
+            _activeBitIndices = activeBitIndices.Distinct().OrderBy(index => index).ToImmutableArray();
             Count = count;
         }
 
-        public int Count { get; }
+        public uint Count { get; }
 
-        public IReadOnlyList<int> ActiveBitIndices { get; }
+        public IReadOnlyList<uint> ActiveBitIndices => _activeBitIndices;
 
         public override bool Equals(object obj)
         {
             return obj is BitVector other &&
                    Count.Equals(other.Count) &&
-                   ActiveBitIndices.Count.Equals(other.ActiveBitIndices.Count) &&
-                   ActiveBitIndices.All(activeBitIndex => other.ActiveBitIndices.Contains(activeBitIndex));
+                   _activeBitIndices.SequenceEqual(other._activeBitIndices);
         }
 
         public override int GetHashCode()
@@ -31,7 +33,7 @@ namespace PunchedCards.BitVectors
             {
                 hashCode = hashCode * 23 + Count.GetHashCode();
 
-                foreach (var activeBitIndex in ActiveBitIndices.OrderBy(index => index))
+                foreach (var activeBitIndex in _activeBitIndices)
                 {
                     hashCode = hashCode * 23 + activeBitIndex.GetHashCode();
                 }

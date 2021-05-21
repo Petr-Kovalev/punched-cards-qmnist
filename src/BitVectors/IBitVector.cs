@@ -4,8 +4,8 @@ namespace PunchedCards.BitVectors
 {
     internal interface IBitVector
     {
-        int Count { get; }
+        uint Count { get; }
 
-        IReadOnlyList<int> ActiveBitIndices { get; }
+        IReadOnlyList<uint> ActiveBitIndices { get; }
     }
 }
