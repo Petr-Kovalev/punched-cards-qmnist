@@ -129,43 +129,12 @@ namespace PunchedCards.Helpers
 
         private static long CalculateAdjacencyMatrixScore(IAdjacencyMatrix adjacencyMatrix, IReadOnlyList<uint> activeBitIndices)
         {
-            var activeBitConnectionsHalfSum = CalculateActiveBitConnectionsHalfSum(adjacencyMatrix, activeBitIndices);
+            var activeBitConnectionsHalfSum = adjacencyMatrix.CalculateActiveBitConnectionsHalfSum(activeBitIndices);
             return
                 // Active connections
                 (long) activeBitConnectionsHalfSum -
                 // Inactive connections
                 ((long) adjacencyMatrix.HalfSum - (long) activeBitConnectionsHalfSum);
-        }
-
-        private static ulong CalculateActiveBitConnectionsHalfSum(IAdjacencyMatrix adjacencyMatrix, IReadOnlyList<uint> activeBitIndices)
-        {
-            ulong activeBitConnectionsHalfSum = 0;
-
-            foreach (var activeBitIndex in activeBitIndices)
-            {
-                for (var i = 0U; i < activeBitIndex; i++)
-                {
-                    activeBitConnectionsHalfSum += adjacencyMatrix[(int) i, (int) activeBitIndex];
-                }
-
-                for (var j = activeBitIndex; j < adjacencyMatrix.Size; j++)
-                {
-                    activeBitConnectionsHalfSum += adjacencyMatrix[(int) activeBitIndex, (int) j];
-                }
-            }
-
-            var activeBitIndicesCount = activeBitIndices.Count;
-            for (var firstActiveBitIndex = 0; firstActiveBitIndex < activeBitIndicesCount; firstActiveBitIndex++)
-            {
-                for (var secondActiveBitIndex = firstActiveBitIndex + 1;
-                    secondActiveBitIndex < activeBitIndicesCount;
-                    secondActiveBitIndex++)
-                {
-                    activeBitConnectionsHalfSum -= adjacencyMatrix[(int)activeBitIndices[firstActiveBitIndex], (int)activeBitIndices[secondActiveBitIndex]];
-                }
-            }
-
-            return activeBitConnectionsHalfSum;
         }
     }
 }

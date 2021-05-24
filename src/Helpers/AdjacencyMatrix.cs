@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -20,6 +21,11 @@ namespace PunchedCards.Helpers
         public uint this[int i, int j] => _adjacencyMatrix[i, j];
 
         public ulong HalfSum { get; }
+
+        public ulong CalculateActiveBitConnectionsHalfSum(IEnumerable<uint> activeBitIndices)
+        {
+            return CalculateActiveBitConnectionsHalfSum(this, activeBitIndices.Distinct().OrderBy(index => index));
+        }
 
         private static uint[,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size, out ulong halfSum)
         {
@@ -52,6 +58,34 @@ namespace PunchedCards.Helpers
             }
 
             return adjacencyMatrix;
+        }
+
+        private static ulong CalculateActiveBitConnectionsHalfSum(IAdjacencyMatrix adjacencyMatrix, IEnumerable<uint> activeBitIndicesOrdered)
+        {
+            ulong activeBitConnectionsHalfSum = 0;
+
+            var usedIndices = new List<uint>();
+            foreach (var activeBitIndex in activeBitIndicesOrdered)
+            {
+                for (var i = 0U; i < activeBitIndex; i++)
+                {
+                    activeBitConnectionsHalfSum += adjacencyMatrix[(int)i, (int)activeBitIndex];
+                }
+
+                foreach (var i in usedIndices)
+                {
+                    activeBitConnectionsHalfSum -= adjacencyMatrix[(int)i, (int)activeBitIndex];
+                }
+
+                usedIndices.Add(activeBitIndex);
+
+                for (var j = activeBitIndex; j < adjacencyMatrix.Size; j++)
+                {
+                    activeBitConnectionsHalfSum += adjacencyMatrix[(int)activeBitIndex, (int)j];
+                }
+            }
+
+            return activeBitConnectionsHalfSum;
         }
     }
 }
