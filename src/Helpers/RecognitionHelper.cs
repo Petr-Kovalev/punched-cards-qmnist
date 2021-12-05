@@ -30,8 +30,7 @@ namespace PunchedCards.Helpers
                             puncher,
                             adjacencyMatrices);
                     var topLabel = matchingScoresPerLabelPerPunchedCard
-                        .OrderByDescending(p => p.Value.Sum(keyScore => keyScore.Value))
-                        .First()
+                        .MaxBy(p => p.Value.Sum(keyScore => keyScore.Value))
                         .Key;
                     if (topLabel.Equals(dataItem.Item2))
                     {

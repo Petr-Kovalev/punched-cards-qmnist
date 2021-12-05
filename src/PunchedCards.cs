@@ -94,11 +94,10 @@ namespace PunchedCards
             IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel)
         {
             var globalTopPunchedCard = punchedCardsPerKeyPerLabel
-                .OrderByDescending(punchedCardPerKeyPerLabel =>
+                .MaxBy(punchedCardPerKeyPerLabel =>
                     punchedCardPerKeyPerLabel.Value
                         .AsParallel()
-                        .Sum(labelAndInputs => RecognitionHelper.CalculateBitVectorsScore(labelAndInputs.Value)))
-                .First();
+                        .Sum(labelAndInputs => RecognitionHelper.CalculateBitVectorsScore(labelAndInputs.Value)));
             return new Dictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                 {{globalTopPunchedCard.Key, globalTopPunchedCard.Value}};
         }
