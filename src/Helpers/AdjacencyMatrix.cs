@@ -7,38 +7,37 @@ namespace PunchedCards.Helpers
 {
     internal sealed class AdjacencyMatrix : IAdjacencyMatrix
     {
-        private readonly uint[,] _adjacencyMatrix;
+        private readonly uint[,,] _adjacencyMatrix;
+        private readonly uint _size;
+        private readonly ulong _maxSpanningTree;
+        private readonly IEnumerable<Tuple<uint, uint, byte>> _maxSpanningTreeEdges;
 
         internal AdjacencyMatrix(IEnumerable<IBitVector> bitVectors)
         {
-            _adjacencyMatrix = CalculateAdjacencyMatrix(bitVectors, out var size, out var halfSum);
-            Size = size;
-            HalfSum = halfSum;
+            _adjacencyMatrix = CalculateAdjacencyMatrix(bitVectors, out _size);
+            FindMaxSpanningTree(_adjacencyMatrix, out _maxSpanningTreeEdges, out _maxSpanningTree);
         }
 
-        public uint Size { get; }
+        public uint Size => _size;
 
-        public uint this[int i, int j] => _adjacencyMatrix[i, j];
+        public ulong MaxSpanningTree => _maxSpanningTree;
 
-        public ulong HalfSum { get; }
-
-        public ulong CalculateActiveBitConnectionsHalfSum(IEnumerable<uint> activeBitIndices)
+        public ulong CalculateMaxSpanningTreeMatchingScore(IEnumerable<uint> activeBitIndices)
         {
-            return CalculateActiveBitConnectionsHalfSum(this, activeBitIndices.Distinct().OrderBy(index => index));
+            return CalculateMaxSpanningTreeMatchingScore(_adjacencyMatrix, _maxSpanningTreeEdges, activeBitIndices);
         }
 
-        private static uint[,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size, out ulong halfSum)
+        private static uint[,,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size)
         {
-            uint[,] adjacencyMatrix = null;
+            uint[,,] adjacencyMatrix = null;
             size = 0;
-            halfSum = 0;
 
             foreach (var bitVector in bitVectors)
             {
                 if (size == 0)
                 {
                     size = bitVector.Count;
-                    adjacencyMatrix = new uint[size, size];
+                    adjacencyMatrix = new uint[size, size, 4];
                 }
 
                 if (bitVector.Count == 0 || bitVector.Count != size)
@@ -46,13 +45,13 @@ namespace PunchedCards.Helpers
                     throw new ArgumentException("Invalid Count of bit vector!", nameof(bitVectors));
                 }
 
-                var activeBitIndices = bitVector.ActiveBitIndices;
-                for (var i = 0; i < activeBitIndices.Count; i++)
+                var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
+                for (uint i = 0; i < size; i++)
                 {
-                    for (var j = i; j < activeBitIndices.Count; j++)
+                    var condition1 = activeBitIndicesHashSet.Contains(i);
+                    for (uint j = i; j < size; j++)
                     {
-                        adjacencyMatrix[activeBitIndices[i], activeBitIndices[j]]++;
-                        halfSum++;
+                        adjacencyMatrix[i, j, GetEdgeIndex(condition1, activeBitIndicesHashSet.Contains(j))]++;
                     }
                 }
             }
@@ -60,32 +59,140 @@ namespace PunchedCards.Helpers
             return adjacencyMatrix;
         }
 
-        private static ulong CalculateActiveBitConnectionsHalfSum(IAdjacencyMatrix adjacencyMatrix, IEnumerable<uint> activeBitIndicesOrdered)
+        private static void FindMaxSpanningTree(uint[,,] adjacencyMatrix, out IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges, out ulong maxSpanningTree)
         {
-            ulong activeBitConnectionsHalfSum = 0;
+            var size = adjacencyMatrix.GetLength(0);
+            var maxSpanningTreeEdgesList = new List<Tuple<uint, uint, byte>>();
 
-            var usedIndices = new List<uint>();
-            foreach (var activeBitIndex in activeBitIndicesOrdered)
+            var solution = new bool?[size];
+            bool anySolved = false;
+
+            do
             {
-                for (var i = 0U; i < activeBitIndex; i++)
+                double max = double.MinValue;
+                uint firstIndex = 0;
+                uint secondIndex = 0;
+                byte edgeIndex = 0;
+                for (uint i = 0; i < size; i++)
                 {
-                    activeBitConnectionsHalfSum += adjacencyMatrix[(int)i, (int)activeBitIndex];
+                    for (uint j = i; j < size; j++)
+                    {
+                        if (i == j ||
+                            solution[i].HasValue && solution[j].HasValue ||
+                            !solution[i].HasValue && !solution[j].HasValue && anySolved)
+                        {
+                            continue;
+                        }
+
+                        for (byte shift = 0; shift < 4; shift++)
+                        {
+                            if (shift == 0U &&
+                                (solution[i].HasValue && solution[i].Value ||
+                                solution[j].HasValue && solution[j].Value))
+                            {
+                                continue;
+                            }
+                            else if (shift == 1U &&
+                                (solution[i].HasValue && !solution[i].Value ||
+                                solution[j].HasValue && solution[j].Value))
+                            {
+                                continue;
+                            }
+                            else if (shift == 2U &&
+                                (solution[i].HasValue && solution[i].Value ||
+                                solution[j].HasValue && !solution[j].Value))
+                            {
+                                continue;
+                            }
+                            else if (shift == 3U &&
+                                (solution[i].HasValue && !solution[i].Value ||
+                                solution[j].HasValue && !solution[j].Value))
+                            {
+                                continue;
+                            }
+
+                            if (adjacencyMatrix[i, j, shift] > max)
+                            {
+                                max = adjacencyMatrix[i, j, shift];
+                                firstIndex = i;
+                                secondIndex = j;
+                                edgeIndex = shift;
+                            }
+                        }
+                    }
                 }
 
-                foreach (var i in usedIndices)
+                if (!solution[firstIndex].HasValue)
                 {
-                    activeBitConnectionsHalfSum -= adjacencyMatrix[(int)i, (int)activeBitIndex];
+                    anySolved = true;
+                    solution[firstIndex] = edgeIndex switch
+                    {
+                        1 or 3 => true,
+                        _ => false,
+                    };
                 }
 
-                usedIndices.Add(activeBitIndex);
-
-                for (var j = activeBitIndex; j < adjacencyMatrix.Size; j++)
+                if (!solution[secondIndex].HasValue)
                 {
-                    activeBitConnectionsHalfSum += adjacencyMatrix[(int)activeBitIndex, (int)j];
+                    anySolved = true;
+                    solution[secondIndex] = edgeIndex switch
+                    {
+                        2 or 3 => true,
+                        _ => false,
+                    };
+                }
+
+                maxSpanningTreeEdgesList.Add(Tuple.Create(firstIndex, secondIndex, edgeIndex));
+
+            } while (solution.Any(i => !i.HasValue));
+
+            maxSpanningTreeEdges = maxSpanningTreeEdgesList;
+            maxSpanningTree = CalculateMaxSpanningTreeMatchingScore(
+                adjacencyMatrix,
+                maxSpanningTreeEdgesList,
+                Enumerable.Range(0, solution.Length).Where(index => solution[index].Value).Select(index => (uint)index));
+        }
+
+        private static ulong CalculateMaxSpanningTreeMatchingScore(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges, IEnumerable<uint> activeBitIndices)
+        {
+            var activeBitIndicesHashSet = new HashSet<uint>(activeBitIndices);
+
+            ulong matchingScore = 0;
+            foreach (var edge in maxSpanningTreeEdges)
+            {
+                var edgeIndex = GetEdgeIndex(activeBitIndicesHashSet.Contains(edge.Item1), activeBitIndicesHashSet.Contains(edge.Item2));
+                if (edgeIndex == edge.Item3)
+                {
+                    matchingScore += adjacencyMatrix[edge.Item1, edge.Item2, edge.Item3];
                 }
             }
+            return matchingScore;
+        }
 
-            return activeBitConnectionsHalfSum;
+        private static byte GetEdgeIndex(bool condition1, bool condition2)
+        {
+            if (condition1)
+            {
+                if (condition2)
+                {
+                    return 3;
+                }
+                else
+                {
+                    return 1;
+                }
+            }
+            else
+            {
+                if (condition2)
+                {
+                    return 2;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
         }
     }
 }

@@ -6,10 +6,8 @@ namespace PunchedCards.Helpers
     {
         public uint Size { get; }
 
-        public uint this[int i, int j] { get; }
+        public ulong MaxSpanningTree { get; }
 
-        public ulong HalfSum { get; }
-
-        public ulong CalculateActiveBitConnectionsHalfSum(IEnumerable<uint> activeBitIndices);
+        public ulong CalculateMaxSpanningTreeMatchingScore(IEnumerable<uint> activeBitIndices);
     }
 }

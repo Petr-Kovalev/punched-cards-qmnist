@@ -137,7 +137,7 @@ namespace PunchedCards
         private static IDictionary<string,
                 IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
             GetPunchedCardsPerKeyPerLabel(
-                IList<Tuple<IBitVector, IBitVector>> trainingData,
+                IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData,
                 IPuncher<string, IBitVector, IBitVector> puncher)
         {
             var count = trainingData[0].Item1.Count;
@@ -154,8 +154,7 @@ namespace PunchedCards
                         GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
                                 new Tuple<IPunchedCard<string, IBitVector>, IBitVector>(
                                     puncher.Punch(key, trainingDataItem.Item1),
-                                    trainingDataItem.Item2))
-                            .Where(punchedCardInput => punchedCardInput.Item1.Input.ActiveBitIndices.Count > 0)));
+                                    trainingDataItem.Item2))));
                 });
             return punchedCardsPerKeyPerLabel;
         }

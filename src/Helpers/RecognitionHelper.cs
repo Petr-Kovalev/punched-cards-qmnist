@@ -76,7 +76,6 @@ namespace PunchedCards.Helpers
                         matchingScoresPerLabelPerPunchedCard,
                         punchedCardsCollectionItem.Key,
                         label.Key,
-                        label.Value.Count,
                         adjacencyMatrices[GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key)],
                         punchedInput);
                 }
@@ -94,11 +93,10 @@ namespace PunchedCards.Helpers
             IDictionary<IBitVector, IDictionary<string, double>> matchingScoresPerLabelPerPunchedCard,
             string punchedCardKey,
             IBitVector key,
-            int samplesCount,
             IAdjacencyMatrix adjacencyMatrix,
             IBitVector punchedInput)
         {
-            var matchingScorePerLabel = CalculateMatchingScore(punchedInput, adjacencyMatrix, samplesCount);
+            var matchingScorePerLabel = CalculateMatchingScore(punchedInput, adjacencyMatrix);
 
             if (!matchingScoresPerLabelPerPunchedCard.TryGetValue(key, out var dictionary))
             {
@@ -109,31 +107,15 @@ namespace PunchedCards.Helpers
             dictionary.Add(punchedCardKey, matchingScorePerLabel);
         }
 
-        internal static double CalculateMatchingScore(IBitVector punchedInput, IAdjacencyMatrix adjacencyMatrix, int samplesCount)
+        internal static double CalculateMatchingScore(IBitVector punchedInput, IAdjacencyMatrix adjacencyMatrix)
         {
-            return (double) CalculateAdjacencyMatrixScore(
-                adjacencyMatrix,
-                punchedInput.ActiveBitIndices) / samplesCount;
+            return (double)adjacencyMatrix.CalculateMaxSpanningTreeMatchingScore(punchedInput.ActiveBitIndices) / adjacencyMatrix.MaxSpanningTree;
         }
 
         internal static double CalculateBitVectorsScore(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            return (double) CalculateAdjacencyMatrixScore(new AdjacencyMatrix(bitVectors)) / bitVectors.Count;
-        }
-
-        private static long CalculateAdjacencyMatrixScore(IAdjacencyMatrix adjacencyMatrix)
-        {
-            return (long) adjacencyMatrix.HalfSum;
-        }
-
-        private static long CalculateAdjacencyMatrixScore(IAdjacencyMatrix adjacencyMatrix, IReadOnlyList<uint> activeBitIndices)
-        {
-            var activeBitConnectionsHalfSum = adjacencyMatrix.CalculateActiveBitConnectionsHalfSum(activeBitIndices);
-            return
-                // Active connections
-                (long) activeBitConnectionsHalfSum -
-                // Inactive connections
-                ((long) adjacencyMatrix.HalfSum - (long) activeBitConnectionsHalfSum);
+            var adjacencyMatrix = new AdjacencyMatrix(bitVectors);
+            return 1 - (double)adjacencyMatrix.MaxSpanningTree / (bitVectors.Count * (adjacencyMatrix.Size - 1));
         }
     }
 }
