@@ -84,39 +84,39 @@ namespace PunchedCards.Helpers
                             continue;
                         }
 
-                        for (byte shift = 0; shift < 4; shift++)
+                        for (byte e = 0; e < 4; e++)
                         {
-                            if (shift == 0U &&
+                            if (e == 0U &&
                                 (solution[i].HasValue && solution[i].Value ||
                                 solution[j].HasValue && solution[j].Value))
                             {
                                 continue;
                             }
-                            else if (shift == 1U &&
+                            else if (e == 1U &&
                                 (solution[i].HasValue && !solution[i].Value ||
                                 solution[j].HasValue && solution[j].Value))
                             {
                                 continue;
                             }
-                            else if (shift == 2U &&
+                            else if (e == 2U &&
                                 (solution[i].HasValue && solution[i].Value ||
                                 solution[j].HasValue && !solution[j].Value))
                             {
                                 continue;
                             }
-                            else if (shift == 3U &&
+                            else if (e == 3U &&
                                 (solution[i].HasValue && !solution[i].Value ||
                                 solution[j].HasValue && !solution[j].Value))
                             {
                                 continue;
                             }
 
-                            if (adjacencyMatrix[i, j, shift] > max)
+                            if (adjacencyMatrix[i, j, e] > max)
                             {
-                                max = adjacencyMatrix[i, j, shift];
+                                max = adjacencyMatrix[i, j, e];
                                 firstIndex = i;
                                 secondIndex = j;
-                                edgeIndex = shift;
+                                edgeIndex = e;
                             }
                         }
                     }
