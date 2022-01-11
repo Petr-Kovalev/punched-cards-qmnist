@@ -115,7 +115,7 @@ namespace PunchedCards.Helpers
         internal static double CalculateBitVectorsScore(IReadOnlyCollection<IBitVector> bitVectors)
         {
             var adjacencyMatrix = new AdjacencyMatrix(bitVectors);
-            return 1 - (double)adjacencyMatrix.MaxSpanningTree / (bitVectors.Count * (adjacencyMatrix.Size - 1));
+            return 1 - (double)adjacencyMatrix.MaxSpanningTree / (bitVectors.Count * (2 * adjacencyMatrix.Size - 1));
         }
     }
 }
