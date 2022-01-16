@@ -7,10 +7,15 @@ namespace PunchedCards.Helpers
 {
     internal sealed class AdjacencyMatrix : IAdjacencyMatrix
     {
+        private static readonly byte FalseFalseEdgeIndex = GetEdgeIndexByVertexValues(false, false);
+        private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
+        private static readonly byte TrueFalseEdgeIndex = GetEdgeIndexByVertexValues(true, false);
+        private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
+
         private readonly uint[,,] _adjacencyMatrix;
         private readonly uint _size;
         private readonly ulong _maxSpanningTree;
-        private readonly IEnumerable<Tuple<uint, uint, byte>> _maxSpanningTreeEdges;
+        private readonly IList<Tuple<uint, uint, byte>> _maxSpanningTreeEdges;
 
         internal AdjacencyMatrix(IEnumerable<IBitVector> bitVectors)
         {
@@ -25,136 +30,6 @@ namespace PunchedCards.Helpers
         public ulong CalculateMaxSpanningTreeMatchingScore(IEnumerable<uint> activeBitIndices)
         {
             return CalculateMaxSpanningTreeMatchingScore(_adjacencyMatrix, _maxSpanningTreeEdges, activeBitIndices);
-        }
-
-        private static uint[,,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size)
-        {
-            uint[,,] adjacencyMatrix = null;
-            size = 0;
-
-            foreach (var bitVector in bitVectors)
-            {
-                if (size == 0)
-                {
-                    size = bitVector.Count;
-                    adjacencyMatrix = new uint[size, size, 4];
-                }
-
-                if (bitVector.Count == 0 || bitVector.Count != size)
-                {
-                    throw new ArgumentException("Invalid Count of bit vector!", nameof(bitVectors));
-                }
-
-                var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
-                for (uint i = 0; i < size; i++)
-                {
-                    var firstVertexValue = activeBitIndicesHashSet.Contains(i);
-                    for (uint j = i; j < size; j++)
-                    {
-                        adjacencyMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, activeBitIndicesHashSet.Contains(j))]++;
-                    }
-                }
-            }
-
-            return adjacencyMatrix;
-        }
-
-        private static void FindMaxSpanningTree(uint[,,] adjacencyMatrix, out IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges, out ulong maxSpanningTree)
-        {
-            uint size = (uint)adjacencyMatrix.GetLength(0);
-            var validVertexValues = new IList<bool>[size];
-            for (int i = 0; i < validVertexValues.Length; i++)
-            {
-                validVertexValues[i] = new List<bool> { true, false };
-            }
-            var loops = new bool[size];
-            var anyEdge = false;
-            var maxSpanningTreeEdgesList = new List<Tuple<uint, uint, byte>>();
-            while (TryFindNextMaxEdge(adjacencyMatrix, size, validVertexValues, loops, anyEdge, out var maxEdge))
-            {
-                maxSpanningTreeEdgesList.Add(maxEdge);
-
-                anyEdge = true;
-                if (maxEdge.Item1 == maxEdge.Item2)
-                {
-                    loops[maxEdge.Item1] = true;
-                }
-
-                GetVertexValuesByEdgeIndex(maxEdge.Item3, out var firstVertexValue, out var secondVertexValue);
-                validVertexValues[maxEdge.Item1].Remove(!firstVertexValue);
-                validVertexValues[maxEdge.Item2].Remove(!secondVertexValue);
-            }
-
-            maxSpanningTreeEdges = maxSpanningTreeEdgesList;
-            maxSpanningTree = CalculateMaxSpanningTree(adjacencyMatrix, maxSpanningTreeEdgesList);
-        }
-
-        private static bool TryFindNextMaxEdge(uint[,,] adjacencyMatrix, uint size, IList<bool>[] validVertexValues, bool[] loops, bool anyEdge, out Tuple<uint, uint, byte> maxEdge)
-        {
-            uint firstVertexIndex = 0;
-            uint secondVertexIndex = 0;
-            byte edgeIndex = 0;
-
-            bool found = false;
-            uint maxEdgeValue = uint.MinValue;
-            for (uint i = 0; i < size; i++)
-            {
-                for (uint j = i; j < size; j++)
-                {
-                    for (byte e = 0; e < 4; e++)
-                    {
-                        if (adjacencyMatrix[i, j, e] <= maxEdgeValue || anyEdge && !IsValidEdge(i, j, e, validVertexValues, loops))
-                        {
-                            continue;
-                        }
-
-                        maxEdgeValue = adjacencyMatrix[i, j, e];
-                        firstVertexIndex = i;
-                        secondVertexIndex = j;
-                        edgeIndex = e;
-                        found = true;
-                    }
-                }
-            }
-
-            maxEdge = found ? Tuple.Create(firstVertexIndex, secondVertexIndex, edgeIndex) : null;
-            return found;
-        }
-
-        private static bool IsValidEdge(uint firstVertexIndex, uint secondVertexIndex, byte edgeIndex, IList<bool>[] validVertexValues, bool[] loops)
-        {
-            var isLoop = firstVertexIndex == secondVertexIndex;
-            if (!isLoop)
-            {
-                var firstVertexConnected = validVertexValues[firstVertexIndex].Count != 2;
-                var secondVertexConnected = validVertexValues[secondVertexIndex].Count != 2;
-                if (firstVertexConnected && secondVertexConnected || !firstVertexConnected && !secondVertexConnected)
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (edgeIndex == 1 || edgeIndex == 2 ||
-                    loops[firstVertexIndex] ||
-                    validVertexValues[firstVertexIndex].Count == 2)
-                {
-                    return false;
-                }
-            }
-
-            GetVertexValuesByEdgeIndex(edgeIndex, out var firstVertexValue, out var secondVertexValue);
-            return validVertexValues[firstVertexIndex].Contains(firstVertexValue) && validVertexValues[secondVertexIndex].Contains(secondVertexValue);
-        }
-
-        private static ulong CalculateMaxSpanningTree(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges)
-        {
-            ulong maxSpanningTree = 0;
-            foreach (var edge in maxSpanningTreeEdges)
-            {
-                maxSpanningTree += adjacencyMatrix[edge.Item1, edge.Item2, edge.Item3];
-            }
-            return maxSpanningTree;
         }
 
         private static ulong CalculateMaxSpanningTreeMatchingScore(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges, IEnumerable<uint> activeBitIndices)
@@ -173,15 +48,154 @@ namespace PunchedCards.Helpers
             return matchingScore;
         }
 
-        private static void GetVertexValuesByEdgeIndex(byte edgeIndex, out bool firstVertexValue, out bool secondVertexValue)
+        private static uint[,,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size)
         {
-            firstVertexValue = edgeIndex == 1 || edgeIndex == 3;
-            secondVertexValue = edgeIndex == 2 || edgeIndex == 3;
+            uint[,,] adjacencyMatrix = null;
+            size = 0;
+
+            foreach (var bitVector in bitVectors)
+            {
+                if (size == 0)
+                {
+                    size = bitVector.Count;
+                    adjacencyMatrix = new uint[size, size, 4];
+                }
+
+                if (bitVector.Count == 0 || bitVector.Count != size)
+                {
+                    throw new ArgumentException($"Invalid {nameof(bitVector.Count)} of bit vector!", nameof(bitVectors));
+                }
+
+                var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
+                for (uint i = 0; i < size; i++)
+                {
+                    var firstVertexValue = activeBitIndicesHashSet.Contains(i);
+                    for (uint j = i; j < size; j++)
+                    {
+                        adjacencyMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, activeBitIndicesHashSet.Contains(j))]++;
+                    }
+                }
+            }
+
+            return adjacencyMatrix;
         }
 
-        private static byte GetEdgeIndexByVertexValues(bool firstVertexValue, bool secondVertexValue)
+        private static void FindMaxSpanningTree(uint[,,] adjacencyMatrix, out IList<Tuple<uint, uint, byte>> maxSpanningTreeEdges, out ulong maxSpanningTree)
         {
-            return (byte)(firstVertexValue ? secondVertexValue ? 3 : 1 : secondVertexValue ? 2 : 0);
+            var vertexCount = adjacencyMatrix.GetLength(0);
+            var connectedVertexIndices = new HashSet<uint>();
+            var notConnectedVertexIndices = new HashSet<uint>(Enumerable.Range(0, vertexCount).Select(vertexIndex => (uint)vertexIndex));
+            var vertexValues = new bool[vertexCount];
+            var vertexLoops = new bool[vertexCount];
+
+            maxSpanningTreeEdges = new List<Tuple<uint, uint, byte>>();
+            maxSpanningTree = 0;
+            while (TryGetNextMaxValidEdge(adjacencyMatrix,
+                connectedVertexIndices.Count != 0 ? GetValidEdges(connectedVertexIndices, notConnectedVertexIndices, vertexValues, vertexLoops) : GetAllValidEdges(vertexCount),
+                out var maxValidEdge))
+            {
+                maxSpanningTreeEdges.Add(maxValidEdge);
+                maxSpanningTree += adjacencyMatrix[maxValidEdge.Item1, maxValidEdge.Item2, maxValidEdge.Item3];
+
+                vertexValues[maxValidEdge.Item1] = GetFirstVertexValueByEdgeIndex(maxValidEdge.Item3);
+                connectedVertexIndices.Add(maxValidEdge.Item1);
+                notConnectedVertexIndices.Remove(maxValidEdge.Item1);
+
+                if (maxValidEdge.Item1 == maxValidEdge.Item2)
+                {
+                    vertexLoops[maxValidEdge.Item1] = true;
+                }
+                else
+                {
+                    vertexValues[maxValidEdge.Item2] = GetSecondVertexValueByEdgeIndex(maxValidEdge.Item3);
+                    connectedVertexIndices.Add(maxValidEdge.Item2);
+                    notConnectedVertexIndices.Remove(maxValidEdge.Item2);
+                }
+            }
         }
+
+        private static bool TryGetNextMaxValidEdge(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> validEdges, out Tuple<uint, uint, byte> maxValidEdge)
+        {
+            uint maxValidEdgeWeight = uint.MinValue;
+            maxValidEdge = null;
+
+            foreach (var validEdge in validEdges)
+            {
+                var edgeWeight = adjacencyMatrix[validEdge.Item1, validEdge.Item2, validEdge.Item3];
+                if (edgeWeight > maxValidEdgeWeight)
+                {
+                    maxValidEdgeWeight = edgeWeight;
+                    maxValidEdge = validEdge;
+                }
+            }
+
+            return maxValidEdge != null;
+        }
+
+        private static IEnumerable<Tuple<uint, uint, byte>> GetValidEdges(IEnumerable<uint> connectedVertexIndices, IEnumerable<uint> notConnectedVertexIndices, bool[] vertexValues, bool[] vertexLoops)
+        {
+            foreach (var connectedVertexIndex in connectedVertexIndices)
+            {
+                var connectedVertexValue = vertexValues[connectedVertexIndex];
+
+                if (!vertexLoops[connectedVertexIndex])
+                {
+                    yield return Tuple.Create(connectedVertexIndex, connectedVertexIndex, connectedVertexValue ? TrueTrueEdgeIndex : FalseFalseEdgeIndex);
+                }
+
+                foreach (var notConnectedVertexIndex in notConnectedVertexIndices)
+                {
+                    if (connectedVertexIndex < notConnectedVertexIndex)
+                    {
+                        yield return Tuple.Create(connectedVertexIndex, notConnectedVertexIndex, connectedVertexValue ? TrueFalseEdgeIndex : FalseFalseEdgeIndex);
+                        yield return Tuple.Create(connectedVertexIndex, notConnectedVertexIndex, connectedVertexValue ? TrueTrueEdgeIndex : FalseTrueEdgeIndex);
+                    }
+                    else
+                    {
+                        yield return Tuple.Create(notConnectedVertexIndex, connectedVertexIndex, connectedVertexValue ? FalseTrueEdgeIndex : FalseFalseEdgeIndex);
+                        yield return Tuple.Create(notConnectedVertexIndex, connectedVertexIndex, connectedVertexValue ? TrueTrueEdgeIndex : TrueFalseEdgeIndex);
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<Tuple<uint, uint, byte>> GetAllValidEdges(int vertexCount)
+        {
+            for (uint cycleVertexIndex = 0; cycleVertexIndex < vertexCount; cycleVertexIndex++)
+            {
+                yield return Tuple.Create(cycleVertexIndex, cycleVertexIndex, FalseFalseEdgeIndex);
+                yield return Tuple.Create(cycleVertexIndex, cycleVertexIndex, TrueTrueEdgeIndex);
+            }
+
+            for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
+            {
+                for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
+                {
+                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, FalseFalseEdgeIndex);
+                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, TrueFalseEdgeIndex);
+                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, FalseTrueEdgeIndex);
+                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, TrueTrueEdgeIndex);
+                }
+            }
+        }
+
+        private static bool GetFirstVertexValueByEdgeIndex(byte edgeIndex) => edgeIndex == TrueFalseEdgeIndex || edgeIndex == TrueTrueEdgeIndex;
+
+        private static bool GetSecondVertexValueByEdgeIndex(byte edgeIndex) => edgeIndex == FalseTrueEdgeIndex || edgeIndex == TrueTrueEdgeIndex;
+
+        private static byte GetEdgeIndexByVertexValues(bool firstVertexValue, bool secondVertexValue) =>
+            firstVertexValue switch
+            {
+                false => secondVertexValue switch
+                {
+                    false => 0,
+                    true => 2
+                },
+                true => secondVertexValue switch
+                {
+                    false => 1,
+                    true => 3
+                }
+            };
     }
 }
