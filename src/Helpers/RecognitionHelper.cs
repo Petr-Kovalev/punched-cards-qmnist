@@ -14,7 +14,7 @@ namespace PunchedCards.Helpers
                 punchedCardsCollection,
             IPuncher<string, IBitVector, IBitVector> puncher)
         {
-            var adjacencyMatrices = CalculateAdjacencyMatrices(punchedCardsCollection);
+            var experts = CreateExperts(punchedCardsCollection);
 
             var correctRecognitionsPerLabel =
                 new ConcurrentDictionary<IBitVector, int>();
@@ -23,14 +23,14 @@ namespace PunchedCards.Helpers
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var matchingScoresPerLabelPerPunchedCard =
-                        CalculateMatchingScoresPerLabelPerPunchedCard(
+                    var lossPerLabelPerPunchedCard =
+                        CalculateLossPerLabelPerPunchedCard(
                             punchedCardsCollection,
                             dataItem.Item1,
                             puncher,
-                            adjacencyMatrices);
-                    var topLabel = matchingScoresPerLabelPerPunchedCard
-                        .MaxBy(p => p.Value.Sum(keyScore => keyScore.Value))
+                            experts);
+                    var topLabel = lossPerLabelPerPunchedCard
+                        .MinBy(p => p.Value.Sum(keyScore => keyScore.Value))
                         .Key;
                     if (topLabel.Equals(dataItem.Item2))
                     {
@@ -44,28 +44,28 @@ namespace PunchedCards.Helpers
             return correctRecognitionsPerLabel;
         }
 
-        private static IDictionary<int, IAdjacencyMatrix> CalculateAdjacencyMatrices(IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection)
+        private static IDictionary<int, IExpert> CreateExperts(IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection)
         {
             return punchedCardsCollection
                 .AsParallel()
                 .SelectMany(punchedCardsCollectionItem =>
                     punchedCardsCollectionItem.Value
                         .Select(label =>
-                            new Tuple<int, IAdjacencyMatrix>(
-                                GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key),
-                                new AdjacencyMatrix(label.Value))))
+                            new Tuple<int, IExpert>(
+                                GetExpertKey(punchedCardsCollectionItem.Key, label.Key),
+                                new Expert(label.Value))))
                 .ToDictionary(t => t.Item1, t => t.Item2);
         }
 
         internal static IDictionary<IBitVector, IDictionary<string, double>>
-            CalculateMatchingScoresPerLabelPerPunchedCard(
+            CalculateLossPerLabelPerPunchedCard(
                 IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                     punchedCardsCollection,
                 IBitVector input,
                 IPuncher<string, IBitVector, IBitVector> puncher,
-                IDictionary<int, IAdjacencyMatrix> adjacencyMatrices)
+                IDictionary<int, IExpert> expert)
         {
-            var matchingScoresPerLabelPerPunchedCard = new Dictionary<IBitVector, IDictionary<string, double>>();
+            var lossPerLabelPerPunchedCard = new Dictionary<IBitVector, IDictionary<string, double>>();
 
             foreach (var punchedCardsCollectionItem in punchedCardsCollection)
             {
@@ -73,49 +73,44 @@ namespace PunchedCards.Helpers
                 foreach (var label in punchedCardsCollectionItem.Value)
                 {
                     ProcessTheSpecificLabel(
-                        matchingScoresPerLabelPerPunchedCard,
+                        lossPerLabelPerPunchedCard,
                         punchedCardsCollectionItem.Key,
                         label.Key,
-                        adjacencyMatrices[GetAdjacencyMatrixKey(punchedCardsCollectionItem.Key, label.Key)],
+                        expert[GetExpertKey(punchedCardsCollectionItem.Key, label.Key)],
                         punchedInput);
                 }
             }
 
-            return matchingScoresPerLabelPerPunchedCard;
+            return lossPerLabelPerPunchedCard;
         }
 
-        private static int GetAdjacencyMatrixKey(string punchedCardsCollectionItemKey, IBitVector labelKey)
+        private static int GetExpertKey(string punchedCardsCollectionItemKey, IBitVector labelKey)
         {
             return HashCode.Combine(punchedCardsCollectionItemKey, labelKey);
         }
 
         private static void ProcessTheSpecificLabel(
-            IDictionary<IBitVector, IDictionary<string, double>> matchingScoresPerLabelPerPunchedCard,
+            IDictionary<IBitVector, IDictionary<string, double>> lossPerLabelPerPunchedCard,
             string punchedCardKey,
             IBitVector key,
-            IAdjacencyMatrix adjacencyMatrix,
+            IExpert expert,
             IBitVector punchedInput)
         {
-            var matchingScorePerLabel = CalculateMatchingScore(punchedInput, adjacencyMatrix);
+            var lossPerLabel = expert.CalculateLoss(punchedInput.ActiveBitIndices);
 
-            if (!matchingScoresPerLabelPerPunchedCard.TryGetValue(key, out var dictionary))
+            if (!lossPerLabelPerPunchedCard.TryGetValue(key, out var dictionary))
             {
                 dictionary = new Dictionary<string, double>();
-                matchingScoresPerLabelPerPunchedCard[key] = dictionary;
+                lossPerLabelPerPunchedCard[key] = dictionary;
             }
 
-            dictionary.Add(punchedCardKey, matchingScorePerLabel);
+            dictionary.Add(punchedCardKey, lossPerLabel);
         }
 
-        internal static double CalculateMatchingScore(IBitVector punchedInput, IAdjacencyMatrix adjacencyMatrix)
+        internal static double CalculateBitVectorsAverageLoss(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            return (double)adjacencyMatrix.CalculateMaxSpanningTreeMatchingScore(punchedInput.ActiveBitIndices) / adjacencyMatrix.MaxSpanningTree;
-        }
-
-        internal static double CalculateBitVectorsScore(IReadOnlyCollection<IBitVector> bitVectors)
-        {
-            var adjacencyMatrix = new AdjacencyMatrix(bitVectors);
-            return 1 - (double)adjacencyMatrix.MaxSpanningTree / (bitVectors.Count * (2 * adjacencyMatrix.Size - 1));
+            var expert = new Expert(bitVectors);
+            return bitVectors.Sum(bitVector => expert.CalculateLoss(bitVector.ActiveBitIndices)) / bitVectors.Count;
         }
     }
 }

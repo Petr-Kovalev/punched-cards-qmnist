@@ -5,60 +5,51 @@ using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
-    internal sealed class AdjacencyMatrix : IAdjacencyMatrix
+    internal sealed class Expert : IExpert
     {
         private static readonly byte FalseFalseEdgeIndex = GetEdgeIndexByVertexValues(false, false);
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueFalseEdgeIndex = GetEdgeIndexByVertexValues(true, false);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly uint[,,] _adjacencyMatrix;
-        private readonly uint _size;
-        private readonly ulong _maxSpanningTree;
+        private readonly uint[,,] _weightMatrix;
+        private readonly ulong _maxSpanningTreeWeight;
         private readonly IList<Tuple<uint, uint, byte>> _maxSpanningTreeEdges;
 
-        internal AdjacencyMatrix(IEnumerable<IBitVector> bitVectors)
+        internal Expert(IEnumerable<IBitVector> bitVectors)
         {
-            _adjacencyMatrix = CalculateAdjacencyMatrix(bitVectors, out _size);
-            FindMaxSpanningTree(_adjacencyMatrix, out _maxSpanningTreeEdges, out _maxSpanningTree);
+            _weightMatrix = CalculateWeightMatrix(bitVectors);
+            FindMaxSpanningTree(_weightMatrix, out _maxSpanningTreeEdges, out _maxSpanningTreeWeight);
         }
 
-        public uint Size => _size;
-
-        public ulong MaxSpanningTree => _maxSpanningTree;
-
-        public ulong CalculateMaxSpanningTreeMatchingScore(IEnumerable<uint> activeBitIndices)
-        {
-            return CalculateMaxSpanningTreeMatchingScore(_adjacencyMatrix, _maxSpanningTreeEdges, activeBitIndices);
-        }
-
-        private static ulong CalculateMaxSpanningTreeMatchingScore(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> maxSpanningTreeEdges, IEnumerable<uint> activeBitIndices)
+        public double CalculateLoss(IEnumerable<uint> activeBitIndices)
         {
             var activeBitIndicesHashSet = new HashSet<uint>(activeBitIndices);
 
-            ulong matchingScore = 0;
-            foreach (var edge in maxSpanningTreeEdges)
+            double maxSpanningTreeMatchingWeightsSum = 0;
+            foreach (var edge in _maxSpanningTreeEdges)
             {
                 var edgeIndex = GetEdgeIndexByVertexValues(activeBitIndicesHashSet.Contains(edge.Item1), activeBitIndicesHashSet.Contains(edge.Item2));
                 if (edgeIndex == edge.Item3)
                 {
-                    matchingScore += adjacencyMatrix[edge.Item1, edge.Item2, edge.Item3];
+                    maxSpanningTreeMatchingWeightsSum += _weightMatrix[edge.Item1, edge.Item2, edge.Item3];
                 }
             }
-            return matchingScore;
+
+            return 1 - maxSpanningTreeMatchingWeightsSum / _maxSpanningTreeWeight;
         }
 
-        private static uint[,,] CalculateAdjacencyMatrix(IEnumerable<IBitVector> bitVectors, out uint size)
+        private static uint[,,] CalculateWeightMatrix(IEnumerable<IBitVector> bitVectors)
         {
-            uint[,,] adjacencyMatrix = null;
-            size = 0;
+            uint[,,] weightMatrix = null;
+            uint size = 0;
 
             foreach (var bitVector in bitVectors)
             {
                 if (size == 0)
                 {
                     size = bitVector.Count;
-                    adjacencyMatrix = new uint[size, size, 4];
+                    weightMatrix = new uint[size, size, 4];
                 }
 
                 if (bitVector.Count == 0 || bitVector.Count != size)
@@ -72,30 +63,30 @@ namespace PunchedCards.Helpers
                     var firstVertexValue = activeBitIndicesHashSet.Contains(i);
                     for (uint j = i; j < size; j++)
                     {
-                        adjacencyMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, activeBitIndicesHashSet.Contains(j))]++;
+                        weightMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, activeBitIndicesHashSet.Contains(j))]++;
                     }
                 }
             }
 
-            return adjacencyMatrix;
+            return weightMatrix;
         }
 
-        private static void FindMaxSpanningTree(uint[,,] adjacencyMatrix, out IList<Tuple<uint, uint, byte>> maxSpanningTreeEdges, out ulong maxSpanningTree)
+        private static void FindMaxSpanningTree(uint[,,] weightMatrix, out IList<Tuple<uint, uint, byte>> maxSpanningTreeEdges, out ulong maxSpanningTreeWeight)
         {
-            var vertexCount = adjacencyMatrix.GetLength(0);
+            var vertexCount = weightMatrix.GetLength(0);
             var connectedVertexIndices = new HashSet<uint>();
             var notConnectedVertexIndices = new HashSet<uint>(Enumerable.Range(0, vertexCount).Select(vertexIndex => (uint)vertexIndex));
             var vertexValues = new bool[vertexCount];
             var vertexLoops = new bool[vertexCount];
 
+            maxSpanningTreeWeight = 0;
             maxSpanningTreeEdges = new List<Tuple<uint, uint, byte>>();
-            maxSpanningTree = 0;
-            while (TryGetNextMaxValidEdge(adjacencyMatrix,
+            while (TryGetNextMaxValidEdge(weightMatrix,
                 connectedVertexIndices.Count != 0 ? GetValidEdges(connectedVertexIndices, notConnectedVertexIndices, vertexValues, vertexLoops) : GetAllValidEdges(vertexCount),
                 out var maxValidEdge))
             {
                 maxSpanningTreeEdges.Add(maxValidEdge);
-                maxSpanningTree += adjacencyMatrix[maxValidEdge.Item1, maxValidEdge.Item2, maxValidEdge.Item3];
+                maxSpanningTreeWeight += weightMatrix[maxValidEdge.Item1, maxValidEdge.Item2, maxValidEdge.Item3];
 
                 vertexValues[maxValidEdge.Item1] = GetFirstVertexValueByEdgeIndex(maxValidEdge.Item3);
                 connectedVertexIndices.Add(maxValidEdge.Item1);
@@ -114,14 +105,14 @@ namespace PunchedCards.Helpers
             }
         }
 
-        private static bool TryGetNextMaxValidEdge(uint[,,] adjacencyMatrix, IEnumerable<Tuple<uint, uint, byte>> validEdges, out Tuple<uint, uint, byte> maxValidEdge)
+        private static bool TryGetNextMaxValidEdge(uint[,,] weightMatrix, IEnumerable<Tuple<uint, uint, byte>> validEdges, out Tuple<uint, uint, byte> maxValidEdge)
         {
             uint maxValidEdgeWeight = uint.MinValue;
             maxValidEdge = null;
 
             foreach (var validEdge in validEdges)
             {
-                var edgeWeight = adjacencyMatrix[validEdge.Item1, validEdge.Item2, validEdge.Item3];
+                var edgeWeight = weightMatrix[validEdge.Item1, validEdge.Item2, validEdge.Item3];
                 if (edgeWeight > maxValidEdgeWeight)
                 {
                     maxValidEdgeWeight = edgeWeight;
