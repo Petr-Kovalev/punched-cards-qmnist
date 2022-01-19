@@ -45,11 +45,9 @@ namespace PunchedCards
         private static IEnumerable<uint> PunchActiveBitIndices(IBitVector bitVector, IEnumerable<uint> indices)
         {
             var currentBitIndex = 0U;
-
-            var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
             foreach (var index in indices)
             {
-                if (activeBitIndicesHashSet.Contains(index))
+                if (bitVector.ActiveBitIndices.Contains(index))
                 {
                     yield return currentBitIndex;
                 }
