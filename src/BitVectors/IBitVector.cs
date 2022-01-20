@@ -6,6 +6,6 @@ namespace PunchedCards.BitVectors
     {
         uint Count { get; }
 
-        IReadOnlyList<uint> ActiveBitIndices { get; }
+        IReadOnlyCollection<uint> ActiveBitIndices { get; }
     }
 }

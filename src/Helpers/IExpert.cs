@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
     internal interface IExpert
     {
-        public double CalculateLoss(IEnumerable<uint> activeBitIndices);
+        public double CalculateLoss(IBitVector bitVector);
     }
 }

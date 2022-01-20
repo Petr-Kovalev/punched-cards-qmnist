@@ -13,29 +13,34 @@ namespace PunchedCards.Helpers
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
         private readonly double _maxSpanningTreeWeightDouble;
-        private readonly IList<Tuple<uint, uint, byte, int[]>> _maxSpanningTreeEdges;
+        private readonly IReadOnlyCollection<Tuple<uint, uint, byte, int[]>> _maxSpanningTreeEdges;
 
-        internal Expert(IEnumerable<IBitVector> bitVectors)
+        private Expert(IEnumerable<IBitVector> bitVectors)
         {
             _maxSpanningTreeEdges = GetMaxSpanningTreeEdges(CalculateWeightMatrix(bitVectors));
             _maxSpanningTreeWeightDouble = (double)_maxSpanningTreeEdges.Sum(edge => edge.Item4[edge.Item3]);
         }
 
-        public double CalculateLoss(IEnumerable<uint> activeBitIndices)
+        internal static IExpert Create(IEnumerable<IBitVector> bitVectors)
         {
-            var activeBitIndicesHashSet = new HashSet<uint>(activeBitIndices);
+            return new Expert(bitVectors);
+        }
 
-            var maxSpanningTreeMatchingWeightsSum = 0;
+        public double CalculateLoss(IBitVector bitVector)
+        {
+            var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
+
+            var maxSpanningTreeWeightLoss = 0;
             foreach (var edge in _maxSpanningTreeEdges)
             {
                 var edgeIndex = GetEdgeIndexByVertexValues(activeBitIndicesHashSet.Contains(edge.Item1), activeBitIndicesHashSet.Contains(edge.Item2));
-                if (edgeIndex == edge.Item3)
+                if (edgeIndex != edge.Item3)
                 {
-                    maxSpanningTreeMatchingWeightsSum += edge.Item4[edge.Item3];
+                    maxSpanningTreeWeightLoss += edge.Item4[edge.Item3];
                 }
             }
 
-            return 1 - maxSpanningTreeMatchingWeightsSum / _maxSpanningTreeWeightDouble;
+            return maxSpanningTreeWeightLoss / _maxSpanningTreeWeightDouble;
         }
 
         private static int[,,] CalculateWeightMatrix(IEnumerable<IBitVector> bitVectors)
@@ -69,11 +74,11 @@ namespace PunchedCards.Helpers
             return weightMatrix;
         }
 
-        private static IList<Tuple<uint, uint, byte, int[]>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
+        private static IReadOnlyCollection<Tuple<uint, uint, byte, int[]>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
         {
             var vertexCount = weightMatrix.GetLength(0);
-            var connectedVertexIndices = new List<uint>();
-            var notConnectedVertexIndices = new List<uint>(Enumerable.Range(0, vertexCount).Select(vertexIndex => (uint)vertexIndex));
+            var connectedVertexIndices = new HashSet<uint>();
+            var notConnectedVertexIndices = new HashSet<uint>(Enumerable.Range(0, vertexCount).Select(vertexIndex => (uint)vertexIndex));
             var vertexValues = new bool[vertexCount];
             var vertexLoops = new bool[vertexCount];
 
@@ -83,23 +88,31 @@ namespace PunchedCards.Helpers
                 out var maxValidEdge))
             {
                 maxSpanningTreeEdges.Add(maxValidEdge);
-
-                vertexValues[maxValidEdge.Item1] = GetFirstVertexValueByEdgeIndex(maxValidEdge.Item3);
-                connectedVertexIndices.Add(maxValidEdge.Item1);
-                notConnectedVertexIndices.Remove(maxValidEdge.Item1);
-
-                if (maxValidEdge.Item1 == maxValidEdge.Item2)
-                {
-                    vertexLoops[maxValidEdge.Item1] = true;
-                }
-                else
-                {
-                    vertexValues[maxValidEdge.Item2] = GetSecondVertexValueByEdgeIndex(maxValidEdge.Item3);
-                    connectedVertexIndices.Add(maxValidEdge.Item2);
-                    notConnectedVertexIndices.Remove(maxValidEdge.Item2);
-                }
+                AddEdge(maxValidEdge, connectedVertexIndices, notConnectedVertexIndices, vertexValues, vertexLoops);
             }
             return maxSpanningTreeEdges;
+        }
+
+        private static void AddEdge(Tuple<uint, uint, byte, int[]> edge, ISet<uint> connectedVertexIndices, ISet<uint> notConnectedVertexIndices, bool[] vertexValues, bool[] vertexLoops)
+        {
+            if (edge.Item1 != edge.Item2)
+            {
+                vertexValues[edge.Item2] = edge.Item3 == FalseTrueEdgeIndex || edge.Item3 == TrueTrueEdgeIndex;
+                connectedVertexIndices.Add(edge.Item2);
+                notConnectedVertexIndices.Remove(edge.Item2);
+            }
+            else
+            {
+                vertexLoops[edge.Item1] = true;
+                if (connectedVertexIndices.Count != 0)
+                {
+                    return;
+                }
+            }
+
+            vertexValues[edge.Item1] = edge.Item3 == TrueFalseEdgeIndex || edge.Item3 == TrueTrueEdgeIndex;
+            connectedVertexIndices.Add(edge.Item1);
+            notConnectedVertexIndices.Remove(edge.Item1);
         }
 
         private static bool TryGetNextMaxValidEdge(int[,,] weightMatrix, IEnumerable<Tuple<uint, uint, byte>> validEdges, out Tuple<uint, uint, byte, int[]> maxValidEdge)
@@ -183,10 +196,6 @@ namespace PunchedCards.Helpers
                 }
             }
         }
-
-        private static bool GetFirstVertexValueByEdgeIndex(byte edgeIndex) => edgeIndex == TrueFalseEdgeIndex || edgeIndex == TrueTrueEdgeIndex;
-
-        private static bool GetSecondVertexValueByEdgeIndex(byte edgeIndex) => edgeIndex == FalseTrueEdgeIndex || edgeIndex == TrueTrueEdgeIndex;
 
         private static byte GetEdgeIndexByVertexValues(bool firstVertexValue, bool secondVertexValue) =>
             firstVertexValue switch

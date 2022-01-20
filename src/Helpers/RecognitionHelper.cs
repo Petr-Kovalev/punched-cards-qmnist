@@ -53,7 +53,7 @@ namespace PunchedCards.Helpers
                         .Select(label =>
                             new Tuple<int, IExpert>(
                                 GetExpertKey(punchedCardsCollectionItem.Key, label.Key),
-                                new Expert(label.Value))))
+                                Expert.Create(label.Value))))
                 .ToDictionary(t => t.Item1, t => t.Item2);
         }
 
@@ -96,7 +96,7 @@ namespace PunchedCards.Helpers
             IExpert expert,
             IBitVector punchedInput)
         {
-            var lossPerLabel = expert.CalculateLoss(punchedInput.ActiveBitIndices);
+            var lossPerLabel = expert.CalculateLoss(punchedInput);
 
             if (!lossPerLabelPerPunchedCard.TryGetValue(key, out var dictionary))
             {
@@ -109,8 +109,8 @@ namespace PunchedCards.Helpers
 
         internal static double CalculateBitVectorsAverageLoss(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            var expert = new Expert(bitVectors);
-            return bitVectors.Sum(bitVector => expert.CalculateLoss(bitVector.ActiveBitIndices)) / bitVectors.Count;
+            var expert = Expert.Create(bitVectors);
+            return bitVectors.Sum(bitVector => expert.CalculateLoss(bitVector)) / bitVectors.Count;
         }
     }
 }

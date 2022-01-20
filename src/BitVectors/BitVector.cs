@@ -16,7 +16,7 @@ namespace PunchedCards.BitVectors
 
         public uint Count { get; }
 
-        public IReadOnlyList<uint> ActiveBitIndices => _activeBitIndices;
+        public IReadOnlyCollection<uint> ActiveBitIndices => _activeBitIndices;
 
         public override bool Equals(object obj)
         {
