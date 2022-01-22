@@ -15,7 +15,7 @@ namespace PunchedCards.BitVectors
 
         public uint Count { get; }
 
-        public bool IsBitActive(uint bitIndex) => OrderedContains(_activeBitIndicesOrdered, bitIndex);
+        public bool IsActive(uint bitIndex) => OrderedContains(_activeBitIndicesOrdered, bitIndex);
 
         private static bool OrderedContains(uint[] indices, uint index)
         {

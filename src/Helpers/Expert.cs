@@ -12,13 +12,13 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly double _maxSpanningTreeWeightDouble;
+        private readonly double _maxSpanningTreeWeight;
         private readonly IReadOnlyCollection<Tuple<uint, uint, byte, int>> _maxSpanningTreeEdges;
 
         private Expert(IEnumerable<IBitVector> bitVectors)
         {
             _maxSpanningTreeEdges = GetMaxSpanningTreeEdges(CalculateWeightMatrix(bitVectors));
-            _maxSpanningTreeWeightDouble = _maxSpanningTreeEdges.Sum(edge => edge.Item4);
+            _maxSpanningTreeWeight = _maxSpanningTreeEdges.Sum(edge => edge.Item4);
         }
 
         internal static IExpert Create(IEnumerable<IBitVector> bitVectors)
@@ -31,40 +31,40 @@ namespace PunchedCards.Helpers
             var maxSpanningTreeWeightLoss = 0;
             foreach (var edge in _maxSpanningTreeEdges)
             {
-                var edgeIndex = GetEdgeIndexByVertexValues(bitVector.IsBitActive(edge.Item1), bitVector.IsBitActive(edge.Item2));
+                var edgeIndex = GetEdgeIndexByVertexValues(bitVector.IsActive(edge.Item1), bitVector.IsActive(edge.Item2));
                 if (edgeIndex != edge.Item3)
                 {
                     maxSpanningTreeWeightLoss += edge.Item4;
                 }
             }
 
-            return maxSpanningTreeWeightLoss / _maxSpanningTreeWeightDouble;
+            return maxSpanningTreeWeightLoss / _maxSpanningTreeWeight;
         }
 
         private static int[,,] CalculateWeightMatrix(IEnumerable<IBitVector> bitVectors)
         {
             int[,,] weightMatrix = null;
-            uint size = 0;
+            uint vertexCount = 0;
 
             foreach (var bitVector in bitVectors)
             {
-                if (size == 0)
+                if (vertexCount == 0)
                 {
-                    size = bitVector.Count;
-                    weightMatrix = new int[size, size, 4];
+                    vertexCount = bitVector.Count;
+                    weightMatrix = new int[vertexCount, vertexCount, 4];
                 }
 
-                if (bitVector.Count == 0 || bitVector.Count != size)
+                if (bitVector.Count == 0 || bitVector.Count != vertexCount)
                 {
                     throw new ArgumentException($"Invalid {nameof(bitVector.Count)} of bit vector!", nameof(bitVectors));
                 }
 
-                for (uint i = 0; i < size - 1; i++)
+                for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
-                    var firstVertexValue = bitVector.IsBitActive(i);
-                    for (uint j = i + 1; j < size; j++)
+                    var firstVertexValue = bitVector.IsActive(firstVertexIndex);
+                    for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                     {
-                        weightMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsBitActive(j))]++;
+                        weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]++;
                     }
                 }
             }
@@ -87,6 +87,7 @@ namespace PunchedCards.Helpers
                 maxSpanningTreeEdges.Add(maxValidEdge);
                 AddEdge(maxValidEdge, connectedVertexIndices, notConnectedVertexIndices, vertexValues);
             }
+
             return maxSpanningTreeEdges;
         }
 

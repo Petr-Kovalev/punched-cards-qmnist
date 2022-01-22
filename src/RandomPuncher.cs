@@ -47,7 +47,7 @@ namespace PunchedCards
             var currentBitIndex = 0U;
             foreach (var index in indices)
             {
-                if (bitVector.IsBitActive(index))
+                if (bitVector.IsActive(index))
                 {
                     yield return currentBitIndex;
                 }

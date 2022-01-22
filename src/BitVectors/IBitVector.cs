@@ -4,6 +4,6 @@
     {
         uint Count { get; }
 
-        bool IsBitActive(uint bitIndex);
+        bool IsActive(uint bitIndex);
     }
 }
