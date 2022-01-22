@@ -28,12 +28,10 @@ namespace PunchedCards.Helpers
 
         public double CalculateLoss(IBitVector bitVector)
         {
-            var activeBitIndicesHashSet = new HashSet<uint>(bitVector.ActiveBitIndices);
-
             var maxSpanningTreeWeightLoss = 0;
             foreach (var edge in _maxSpanningTreeEdges)
             {
-                var edgeIndex = GetEdgeIndexByVertexValues(activeBitIndicesHashSet.Contains(edge.Item1), activeBitIndicesHashSet.Contains(edge.Item2));
+                var edgeIndex = GetEdgeIndexByVertexValues(bitVector.IsBitActive(edge.Item1), bitVector.IsBitActive(edge.Item2));
                 if (edgeIndex != edge.Item3)
                 {
                     maxSpanningTreeWeightLoss += edge.Item4;
@@ -63,10 +61,10 @@ namespace PunchedCards.Helpers
 
                 for (uint i = 0; i < size - 1; i++)
                 {
-                    var firstVertexValue = bitVector.ActiveBitIndices.Contains(i);
+                    var firstVertexValue = bitVector.IsBitActive(i);
                     for (uint j = i + 1; j < size; j++)
                     {
-                        weightMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.ActiveBitIndices.Contains(j))]++;
+                        weightMatrix[i, j, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsBitActive(j))]++;
                     }
                 }
             }
