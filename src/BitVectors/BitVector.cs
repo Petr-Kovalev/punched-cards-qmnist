@@ -1,56 +1,29 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
-        private readonly uint[] _activeBitIndicesOrdered;
+        private readonly uint[] _activeBitIndicesSorted;
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            _activeBitIndicesOrdered = activeBitIndices.Distinct().OrderBy(index => index).ToArray();
+            _activeBitIndicesSorted = activeBitIndices.ToArray();
+            Array.Sort(_activeBitIndicesSorted);
             Count = count;
         }
 
         public uint Count { get; }
 
-        public bool IsActive(uint bitIndex) => OrderedContains(_activeBitIndicesOrdered, bitIndex);
-
-        private static bool OrderedContains(uint[] indices, uint index)
-        {
-            var left = 0;
-            var right = indices.Length - 1;
-
-            while (left <= right)
-            {
-                var middle = (left + right) / 2;
-
-                var middleValue = indices[middle];
-                if (middleValue == index)
-                {
-                    return true;
-                }
-
-                if (middleValue < index)
-                {
-                    left = middle + 1;
-                }
-                else
-                {
-                    right = middle - 1;
-                }
-            }
-
-            return false;
-        }
+        public bool IsActive(uint bitIndex) => Array.BinarySearch(_activeBitIndicesSorted, bitIndex) >= 0;
 
         public override bool Equals(object obj)
         {
             return obj is BitVector other &&
                    Count.Equals(other.Count) &&
-                   _activeBitIndicesOrdered.Length.Equals(other._activeBitIndicesOrdered.Length) &&
-                   _activeBitIndicesOrdered.SequenceEqual(other._activeBitIndicesOrdered);
+                   _activeBitIndicesSorted.SequenceEqual(other._activeBitIndicesSorted);
         }
 
         public override int GetHashCode()
@@ -61,7 +34,7 @@ namespace PunchedCards.BitVectors
             {
                 hashCode = hashCode * 23 + Count.GetHashCode();
 
-                foreach (var activeBitIndex in _activeBitIndicesOrdered)
+                foreach (var activeBitIndex in _activeBitIndicesSorted)
                 {
                     hashCode = hashCode * 23 + activeBitIndex.GetHashCode();
                 }
