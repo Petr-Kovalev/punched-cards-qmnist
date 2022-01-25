@@ -97,7 +97,7 @@ namespace PunchedCards
                 .MaxBy(punchedCardPerKeyPerLabel =>
                     punchedCardPerKeyPerLabel.Value
                         .AsParallel()
-                        .Sum(labelAndInputs => RecognitionHelper.CalculateBitVectorsAverageLoss(labelAndInputs.Value)));
+                        .Sum(labelAndInputs => RecognitionHelper.CalculateBitVectorsMaxLoss(labelAndInputs.Value)));
             return new Dictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                 {{globalTopPunchedCard.Key, globalTopPunchedCard.Value}};
         }
@@ -116,7 +116,7 @@ namespace PunchedCards
 
                 var topPunchedCardsPerSpecificLabel = punchedCardsPerKeyPerLabel
                     .OrderByDescending(punchedCardPerLabel =>
-                        RecognitionHelper.CalculateBitVectorsAverageLoss(punchedCardPerLabel.Value[label]))
+                        RecognitionHelper.CalculateBitVectorsMaxLoss(punchedCardPerLabel.Value[label]))
                     .Take(topPunchedCardsPerKeyPerLabelCount);
 
                 foreach (var topPunchedCardPerSpecificLabel in topPunchedCardsPerSpecificLabel)

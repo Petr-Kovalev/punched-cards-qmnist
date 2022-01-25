@@ -57,7 +57,7 @@ namespace PunchedCards.Helpers
                 .ToDictionary(t => t.Item1, t => t.Item2);
         }
 
-        internal static IDictionary<IBitVector, IDictionary<string, double>>
+        private static IDictionary<IBitVector, IDictionary<string, double>>
             CalculateLossPerLabelPerPunchedCard(
                 IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                     punchedCardsCollection,
@@ -107,10 +107,10 @@ namespace PunchedCards.Helpers
             dictionary.Add(punchedCardKey, lossPerLabel);
         }
 
-        internal static double CalculateBitVectorsAverageLoss(IReadOnlyCollection<IBitVector> bitVectors)
+        internal static double CalculateBitVectorsMaxLoss(IReadOnlyCollection<IBitVector> bitVectors)
         {
             var expert = Expert.Create(bitVectors);
-            return bitVectors.Sum(bitVector => expert.CalculateLoss(bitVector)) / bitVectors.Count;
+            return bitVectors.Max(bitVector => expert.CalculateLoss(bitVector));
         }
     }
 }
