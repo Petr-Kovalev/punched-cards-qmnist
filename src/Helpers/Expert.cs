@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -15,13 +17,13 @@ namespace PunchedCards.Helpers
         private readonly double _maxSpanningTreeWeight;
         private readonly IReadOnlyCollection<Tuple<uint, uint, byte, int>> _maxSpanningTreeEdges;
 
-        private Expert(IEnumerable<IBitVector> bitVectors)
+        private Expert(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            _maxSpanningTreeEdges = GetMaxSpanningTreeEdges(CalculateWeightMatrix(bitVectors));
+            _maxSpanningTreeEdges = GetMaxSpanningTreeEdges(CalculateWeightMatrix(bitVectors)).ToList();
             _maxSpanningTreeWeight = _maxSpanningTreeEdges.Sum(edge => edge.Item4);
         }
 
-        internal static IExpert Create(IEnumerable<IBitVector> bitVectors)
+        internal static IExpert Create(IReadOnlyCollection<IBitVector> bitVectors)
         {
             return new Expert(bitVectors);
         }
@@ -41,54 +43,40 @@ namespace PunchedCards.Helpers
             return maxSpanningTreeWeightLoss / _maxSpanningTreeWeight;
         }
 
-        private static int[,,] CalculateWeightMatrix(IEnumerable<IBitVector> bitVectors)
+        private static int[,,] CalculateWeightMatrix(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            int[,,] weightMatrix = null;
-            uint vertexCount = 0;
+            uint vertexCount = bitVectors.First().Count;
 
-            foreach (var bitVector in bitVectors)
+            var weightMatrix = new int[vertexCount, vertexCount, 4];
+            Parallel.ForEach(bitVectors, bitVector =>
             {
-                if (vertexCount == 0)
-                {
-                    vertexCount = bitVector.Count;
-                    weightMatrix = new int[vertexCount, vertexCount, 4];
-                }
-
-                if (bitVector.Count == 0 || bitVector.Count != vertexCount)
-                {
-                    throw new ArgumentException($"Invalid {nameof(bitVector.Count)} of bit vector!", nameof(bitVectors));
-                }
-
                 for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
                     var firstVertexValue = bitVector.IsActive(firstVertexIndex);
                     for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                     {
-                        weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]++;
+                        Interlocked.Increment(ref weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]);
                     }
                 }
-            }
+            });
 
             return weightMatrix;
         }
 
-        private static IReadOnlyCollection<Tuple<uint, uint, byte, int>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
+        private static IEnumerable<Tuple<uint, uint, byte, int>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
         {
             var vertexCount = weightMatrix.GetLength(0);
             var connectedVertexIndices = new HashSet<uint>();
             var notConnectedVertexIndices = new List<uint>(Enumerable.Range(0, vertexCount).Select(vertexIndex => (uint)vertexIndex));
             var vertexValues = new bool[vertexCount];
 
-            var maxSpanningTreeEdges = new List<Tuple<uint, uint, byte, int>>();
             while (TryGetNextMaxValidEdge(weightMatrix,
                 connectedVertexIndices.Count != 0 ? GetValidEdges(connectedVertexIndices, notConnectedVertexIndices, vertexValues) : GetAllValidEdges(vertexCount),
                 out var maxValidEdge))
             {
-                maxSpanningTreeEdges.Add(maxValidEdge);
                 AddEdge(maxValidEdge, connectedVertexIndices, notConnectedVertexIndices, vertexValues);
+                yield return maxValidEdge;
             }
-
-            return maxSpanningTreeEdges;
         }
 
         private static void AddEdge(Tuple<uint, uint, byte, int> edge, ISet<uint> connectedVertexIndices, ICollection<uint> notConnectedVertexIndices, bool[] vertexValues)
