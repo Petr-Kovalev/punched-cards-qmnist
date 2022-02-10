@@ -10,7 +10,7 @@ namespace PunchedCards.BitVectors
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            _activeBitIndicesSorted = activeBitIndices.ToArray();
+            _activeBitIndicesSorted = activeBitIndices.Distinct().ToArray();
             Array.Sort(_activeBitIndicesSorted);
             Count = count;
         }
