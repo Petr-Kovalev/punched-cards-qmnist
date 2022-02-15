@@ -23,14 +23,15 @@ namespace PunchedCards
 
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
                 var punchedCardsPerKeyPerLabel = GetPunchedCardsPerKeyPerLabel(trainingData, puncher);
+                var experts = RecognitionHelper.CreateExperts(punchedCardsPerKeyPerLabel);
 
                 Console.WriteLine();
                 Console.WriteLine("Global top punched card:");
-                WriteTrainingAndTestResults(GetGlobalTopPunchedCard(punchedCardsPerKeyPerLabel), trainingData, testData, puncher);
+                WriteTrainingAndTestResults(GetGlobalTopPunchedCard(punchedCardsPerKeyPerLabel, experts), trainingData, testData, puncher, experts);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched cards per label:");
-                WriteTrainingAndTestResults(GetTopPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, 64), trainingData, testData, puncher);
+                WriteTrainingAndTestResults(GetTopPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, experts, 64), trainingData, testData, puncher, experts);
 
                 Console.WriteLine();
             }
@@ -43,20 +44,21 @@ namespace PunchedCards
             IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> topPunchedCardsPerLabel,
             List<Tuple<IBitVector, IBitVector>> trainingData,
             List<Tuple<IBitVector, IBitVector>> testData,
-            IPuncher<string, IBitVector, IBitVector> puncher)
+            IPuncher<string, IBitVector, IBitVector> puncher,
+            IReadOnlyDictionary<string, IExpert> experts)
         {
             Console.WriteLine("Unique input combinations per punched card (descending): " +
                               GetPunchedCardsPerLabelString(topPunchedCardsPerLabel));
 
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, topPunchedCardsPerLabel, puncher);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, topPunchedCardsPerLabel, puncher, experts);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, topPunchedCardsPerLabel, puncher);
+                RecognitionHelper.CountCorrectRecognitions(testData, topPunchedCardsPerLabel, puncher, experts);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
@@ -68,8 +70,8 @@ namespace PunchedCards
         {
             var punchedCardsPerLabelUniqueLookupCounts = punchedCardsPerLabel
                 .Select(punchedCardPerLabel =>
-                    new Tuple<IReadOnlyCollection<int>, int>(
-                        punchedCardPerLabel.Value
+                    Tuple.Create(
+                        (IReadOnlyCollection<int>)punchedCardPerLabel.Value
                             .Select(punchedCard => punchedCard.Value.Distinct().Count())
                             .OrderByDescending(count => count)
                             .ToList(),
@@ -91,13 +93,11 @@ namespace PunchedCards
         }
 
         private static IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> GetGlobalTopPunchedCard(
-            IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel)
+            IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel,
+            IReadOnlyDictionary<string, IExpert> experts)
         {
             var globalTopPunchedCard = punchedCardsPerKeyPerLabel
-                .MaxBy(punchedCardPerKeyPerLabel =>
-                    punchedCardPerKeyPerLabel.Value
-                        .AsParallel()
-                        .Sum(labelAndInputs => RecognitionHelper.CalculateBitVectorsMaxLoss(labelAndInputs.Value)));
+                .MaxBy(punchedCardPerKeyPerLabel => RecognitionHelper.CalculateMaxLossSum(punchedCardPerKeyPerLabel, experts));
             return new Dictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                 {{globalTopPunchedCard.Key, globalTopPunchedCard.Value}};
         }
@@ -105,6 +105,7 @@ namespace PunchedCards
         private static IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
             GetTopPunchedCardsPerLabel(
                 IDictionary<string, IDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel,
+                IReadOnlyDictionary<string, IExpert> experts,
                 int topPunchedCardsPerKeyPerLabelCount)
         {
             var topPunchedCardsPerKeyPerLabel =
@@ -115,8 +116,7 @@ namespace PunchedCards
                 var label = DataHelper.GetLabelBitVector(i, BitVectorFactory);
 
                 var topPunchedCardsPerSpecificLabel = punchedCardsPerKeyPerLabel
-                    .OrderByDescending(punchedCardPerLabel =>
-                        RecognitionHelper.CalculateBitVectorsMaxLoss(punchedCardPerLabel.Value[label]))
+                    .OrderByDescending(punchedCardsPerKeyPerLabel => RecognitionHelper.CalculateMaxLoss(punchedCardsPerKeyPerLabel, experts, label))
                     .Take(topPunchedCardsPerKeyPerLabelCount);
 
                 foreach (var topPunchedCardPerSpecificLabel in topPunchedCardsPerSpecificLabel)
@@ -152,9 +152,7 @@ namespace PunchedCards
                 {
                     punchedCardsPerKeyPerLabel.Add(key,
                         GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
-                                new Tuple<IPunchedCard<string, IBitVector>, IBitVector>(
-                                    puncher.Punch(key, trainingDataItem.Item1),
-                                    trainingDataItem.Item2))));
+                            Tuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2))));
                 });
             return punchedCardsPerKeyPerLabel;
         }

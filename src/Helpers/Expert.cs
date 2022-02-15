@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -14,33 +13,36 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly double _maxSpanningTreeWeight;
-        private readonly IReadOnlyCollection<Tuple<uint, uint, byte, int>> _maxSpanningTreeEdges;
+        private readonly IReadOnlyDictionary<IBitVector, IReadOnlyCollection<Tuple<uint, uint, byte, int>>> _maxSpanningTreeEdges;
 
-        private Expert(IReadOnlyCollection<IBitVector> bitVectors)
+        private Expert(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
-            _maxSpanningTreeEdges = GetMaxSpanningTreeEdges(CalculateWeightMatrix(bitVectors)).ToList();
-            _maxSpanningTreeWeight = _maxSpanningTreeEdges.Sum(edge => edge.Item4);
+            _maxSpanningTreeEdges = trainingData.ToDictionary(
+                trainingItem => trainingItem.Key,
+                trainingItem => (IReadOnlyCollection<Tuple<uint, uint, byte, int>>)GetMaxSpanningTreeEdges(CalculateWeightMatrix(trainingItem.Value)).ToList());
         }
 
-        internal static IExpert Create(IReadOnlyCollection<IBitVector> bitVectors)
+        internal static IExpert Create(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
-            return new Expert(bitVectors);
+            return new Expert(trainingData);
         }
 
-        public double CalculateLoss(IBitVector bitVector)
+        public double CalculateLoss(IBitVector bitVector, IBitVector label)
         {
+            var maxSpanningTreeWeight = 0;
             var maxSpanningTreeWeightLoss = 0;
-            foreach (var edge in _maxSpanningTreeEdges)
+            foreach (var edge in _maxSpanningTreeEdges[label])
             {
                 var edgeIndex = GetEdgeIndexByVertexValues(bitVector.IsActive(edge.Item1), bitVector.IsActive(edge.Item2));
                 if (edgeIndex != edge.Item3)
                 {
                     maxSpanningTreeWeightLoss += edge.Item4;
                 }
+
+                maxSpanningTreeWeight += edge.Item4;
             }
 
-            return maxSpanningTreeWeightLoss / _maxSpanningTreeWeight;
+            return (double)maxSpanningTreeWeightLoss / maxSpanningTreeWeight;
         }
 
         private static int[,,] CalculateWeightMatrix(IReadOnlyCollection<IBitVector> bitVectors)
@@ -48,17 +50,19 @@ namespace PunchedCards.Helpers
             uint vertexCount = bitVectors.First().Count;
 
             var weightMatrix = new int[vertexCount, vertexCount, 4];
-            Parallel.ForEach(bitVectors, bitVector =>
-            {
-                for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
+            bitVectors
+                .AsParallel()
+                .ForAll(bitVector =>
                 {
-                    var firstVertexValue = bitVector.IsActive(firstVertexIndex);
-                    for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
+                    for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                     {
-                        Interlocked.Increment(ref weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]);
+                        var firstVertexValue = bitVector.IsActive(firstVertexIndex);
+                        for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
+                        {
+                            Interlocked.Increment(ref weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]);
+                        }
                     }
-                }
-            });
+                });
 
             return weightMatrix;
         }

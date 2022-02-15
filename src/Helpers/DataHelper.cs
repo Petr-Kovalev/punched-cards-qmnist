@@ -23,7 +23,7 @@ namespace PunchedCards.Helpers
         private static IEnumerable<Tuple<IBitVector, IBitVector>> ReaData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
         {
             return readImagesFunction()
-                .Select(image => new Tuple<IBitVector, IBitVector>(
+                .Select(image => Tuple.Create(
                     GetValueBitVector(image.Data, bitVectorFactory),
                     GetLabelBitVector(image.Label, bitVectorFactory)));
         }
