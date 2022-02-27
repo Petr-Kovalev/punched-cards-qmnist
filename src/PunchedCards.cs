@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using PunchedCards.BitVectors;
@@ -52,14 +51,14 @@ namespace PunchedCards
                               GetPunchedCardsPerLabelString(topPunchedCardsPerLabel));
 
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, topPunchedCardsPerLabel, puncher, experts);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, topPunchedCardsPerLabel, puncher, experts, BitVectorFactory);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, topPunchedCardsPerLabel, puncher, experts);
+                RecognitionHelper.CountCorrectRecognitions(testData, topPunchedCardsPerLabel, puncher, experts, BitVectorFactory);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
@@ -116,10 +115,8 @@ namespace PunchedCards
             var topPunchedCardsPerKeyPerLabel =
                 new Dictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>();
 
-            for (byte labelValue = 0; labelValue < DataHelper.LabelsCount; labelValue++)
+            foreach (var label in DataHelper.GetLabels(BitVectorFactory))
             {
-                var label = DataHelper.GetLabelBitVector(labelValue, BitVectorFactory);
-
                 var topPunchedCardsPerSpecificLabel = punchedCardsPerKeyPerLabel
                     .AsParallel()
                     .Select(punchedCardsPerKeyPerLabel =>
@@ -149,22 +146,15 @@ namespace PunchedCards
                 IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData,
                 IPuncher<string, IBitVector, IBitVector> puncher)
         {
-            var punchedCardsPerKeyPerLabel = new ConcurrentDictionary<
-                string,
-                IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>();
-
             var count = trainingData[0].Item1.Count;
-            puncher
+            return puncher
                 .GetKeys(count)
                 .AsParallel()
-                .ForAll(key =>
-                {
-                    punchedCardsPerKeyPerLabel.TryAdd(key,
-                        GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
-                            Tuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2))));
-                });
-
-            return punchedCardsPerKeyPerLabel;
+                .Select(key => Tuple.Create(
+                            key,
+                            GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
+                                    Tuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2)))))
+                .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
         private static IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>> GetPunchedCardsPerLabel(

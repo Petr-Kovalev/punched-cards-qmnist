@@ -8,7 +8,7 @@ namespace PunchedCards.Helpers
 {
     internal static class DataHelper
     {
-        internal const int LabelsCount = 10;
+        private const int LabelCount = 10;
 
         internal static IEnumerable<Tuple<IBitVector, IBitVector>> ReadTrainingData(IBitVectorFactory bitVectorFactory)
         {
@@ -20,6 +20,11 @@ namespace PunchedCards.Helpers
             return ReaData(QmnistReader.ReadTestData, bitVectorFactory);
         }
 
+        internal static IEnumerable<IBitVector> GetLabels(IBitVectorFactory bitVectorFactory)
+        {
+            return Enumerable.Range(0, LabelCount).Select(labelIndex => GetLabelBitVector((byte) labelIndex, bitVectorFactory));
+        }
+
         private static IEnumerable<Tuple<IBitVector, IBitVector>> ReaData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
         {
             return readImagesFunction()
@@ -28,7 +33,7 @@ namespace PunchedCards.Helpers
                     GetLabelBitVector(image.Label, bitVectorFactory)));
         }
 
-        internal static IBitVector GetLabelBitVector(byte label, IBitVectorFactory bitVectorFactory)
+        private static IBitVector GetLabelBitVector(byte label, IBitVectorFactory bitVectorFactory)
         {
             return bitVectorFactory.Create(
                 GetActiveBitIndices(label).Select(i => 7 - i),

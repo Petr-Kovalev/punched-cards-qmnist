@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -12,9 +12,10 @@ namespace PunchedCards.Helpers
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
             IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection,
             IPuncher<string, IBitVector, IBitVector> puncher,
-            IReadOnlyDictionary<string, IExpert> experts)
+            IReadOnlyDictionary<string, IExpert> experts,
+            IBitVectorFactory bitVectorFactory)
         {
-            var correctRecognitionsPerLabel = new ConcurrentDictionary<IBitVector, int>();
+            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, label => new int[1]);
 
             data
                 .AsParallel()
@@ -31,14 +32,11 @@ namespace PunchedCards.Helpers
                         .Key;
                     if (topLabel.Equals(dataItem.Item2))
                     {
-                        correctRecognitionsPerLabel.AddOrUpdate(
-                            dataItem.Item2,
-                            _ => 1,
-                            (_, value) => value + 1);
+                        Interlocked.Increment(ref counters[topLabel][0]);
                     }
                 });
 
-            return correctRecognitionsPerLabel;
+            return counters.ToDictionary(p => p.Key, p => p.Value[0]);
         }
 
         internal static IReadOnlyDictionary<string, IExpert> CreateExperts(IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection)
