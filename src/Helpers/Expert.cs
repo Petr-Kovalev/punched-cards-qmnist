@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -94,19 +93,17 @@ namespace PunchedCards.Helpers
             uint vertexCount = bitVectors.First().Count;
 
             var weightMatrix = new int[vertexCount, vertexCount, 4];
-            bitVectors
-                .AsParallel()
-                .ForAll(bitVector =>
+            foreach (var bitVector in bitVectors)
+            {
+                for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
-                    for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
+                    var firstVertexValue = bitVector.IsActive(firstVertexIndex);
+                    for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                     {
-                        var firstVertexValue = bitVector.IsActive(firstVertexIndex);
-                        for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
-                        {
-                            Interlocked.Increment(ref weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]);
-                        }
+                        weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]++;
                     }
-                });
+                }
+            }
 
             return weightMatrix;
         }

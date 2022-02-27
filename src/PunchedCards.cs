@@ -98,7 +98,11 @@ namespace PunchedCards
             IReadOnlyDictionary<string, IExpert> experts)
         {
             var globalTopPunchedCard = punchedCardsPerKeyPerLabel
-                .MaxBy(punchedCardPerKeyPerLabel => RecognitionHelper.CalculateMaxLossSum(punchedCardPerKeyPerLabel, experts));
+                .AsParallel()
+                .Select(punchedCardsPerKeyPerLabel =>
+                        Tuple.Create(punchedCardsPerKeyPerLabel, RecognitionHelper.CalculateMaxLossSum(punchedCardsPerKeyPerLabel, experts)))
+                .MaxBy(tuple => tuple.Item2).Item1;
+
             return new Dictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
                 {{globalTopPunchedCard.Key, globalTopPunchedCard.Value}};
         }
@@ -112,13 +116,17 @@ namespace PunchedCards
             var topPunchedCardsPerKeyPerLabel =
                 new Dictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>();
 
-            for (byte i = 0; i < DataHelper.LabelsCount; i++)
+            for (byte labelValue = 0; labelValue < DataHelper.LabelsCount; labelValue++)
             {
-                var label = DataHelper.GetLabelBitVector(i, BitVectorFactory);
+                var label = DataHelper.GetLabelBitVector(labelValue, BitVectorFactory);
 
                 var topPunchedCardsPerSpecificLabel = punchedCardsPerKeyPerLabel
-                    .OrderByDescending(punchedCardsPerKeyPerLabel => RecognitionHelper.CalculateMaxLoss(punchedCardsPerKeyPerLabel, experts, label))
-                    .Take(topPunchedCardsPerKeyPerLabelCount);
+                    .AsParallel()
+                    .Select(punchedCardsPerKeyPerLabel =>
+                        Tuple.Create(punchedCardsPerKeyPerLabel, RecognitionHelper.CalculateMaxLoss(punchedCardsPerKeyPerLabel, experts, label)))
+                    .OrderByDescending(tuple => tuple.Item2)
+                    .Take(topPunchedCardsPerKeyPerLabelCount)
+                    .Select(tuple => tuple.Item1);
 
                 foreach (var topPunchedCardPerSpecificLabel in topPunchedCardsPerSpecificLabel)
                 {
