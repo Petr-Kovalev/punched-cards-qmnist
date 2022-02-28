@@ -34,7 +34,7 @@ namespace PunchedCards.Helpers
 
         public double CalculateLoss(IBitVector bitVector, IBitVector label)
         {
-            return CalculateLossesPerLabel(bitVector)[_labels.IndexOf(label)];
+            return CalculateLossPerLabel(bitVector, label);
         }
 
         public IReadOnlyDictionary<IBitVector, double> CalculateLosses(IBitVector bitVector)
@@ -46,7 +46,7 @@ namespace PunchedCards.Helpers
         private double[] CalculateLossesPerLabel(IBitVector bitVector)
         {
             var lossesPerLabel = _labels.Select(currentLabel => CalculateLossPerLabel(bitVector, currentLabel)).ToArray();
-            Softmax(lossesPerLabel);
+            //Softmax(lossesPerLabel);
             return lossesPerLabel;
         }
 
