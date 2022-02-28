@@ -15,7 +15,7 @@ namespace PunchedCards.Helpers
             IReadOnlyDictionary<string, IExpert> experts,
             IBitVectorFactory bitVectorFactory)
         {
-            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, label => new int[1]);
+            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new int[1]);
 
             data
                 .AsParallel()
@@ -48,16 +48,16 @@ namespace PunchedCards.Helpers
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
-        internal static double CalculateMaxLoss(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardPerLabel, IReadOnlyDictionary<string, IExpert> experts, IBitVector label)
+        internal static double CalculateMaxLoss(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts, IBitVector label)
         {
-            var expert = experts[punchedCardPerLabel.Key];
-            return punchedCardPerLabel.Value[label].Max(input => expert.CalculateLoss(input, label));
+            var expert = experts[punchedCardsPerLabel.Key];
+            return punchedCardsPerLabel.Value[label].Max(input => expert.CalculateLoss(input, label));
         }
 
-        internal static double CalculateMaxLossSum(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardPerLabel, IReadOnlyDictionary<string, IExpert> experts)
+        internal static double CalculateMaxLossSum(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts)
         {
-            var expert = experts[punchedCardPerLabel.Key];
-            return punchedCardPerLabel.Value.Sum(labelAndInputs => labelAndInputs.Value.Max(input => expert.CalculateLoss(input, labelAndInputs.Key)));
+            var expert = experts[punchedCardsPerLabel.Key];
+            return punchedCardsPerLabel.Value.Sum(labelAndInputs => labelAndInputs.Value.Max(input => expert.CalculateLoss(input, labelAndInputs.Key)));
         }
 
         private static IReadOnlyDictionary<IBitVector, IReadOnlyDictionary<string, double>>

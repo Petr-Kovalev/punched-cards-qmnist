@@ -98,8 +98,8 @@ namespace PunchedCards
         {
             var globalTopPunchedCard = punchedCardsPerKeyPerLabel
                 .AsParallel()
-                .Select(punchedCardsPerKeyPerLabel =>
-                        Tuple.Create(punchedCardsPerKeyPerLabel, RecognitionHelper.CalculateMaxLossSum(punchedCardsPerKeyPerLabel, experts)))
+                .Select(punchedCardsPerLabel =>
+                    Tuple.Create(punchedCardsPerLabel, RecognitionHelper.CalculateMaxLossSum(punchedCardsPerLabel, experts)))
                 .MaxBy(tuple => tuple.Item2).Item1;
 
             return new Dictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
@@ -119,8 +119,8 @@ namespace PunchedCards
             {
                 var topPunchedCardsPerSpecificLabel = punchedCardsPerKeyPerLabel
                     .AsParallel()
-                    .Select(punchedCardsPerKeyPerLabel =>
-                        Tuple.Create(punchedCardsPerKeyPerLabel, RecognitionHelper.CalculateMaxLoss(punchedCardsPerKeyPerLabel, experts, label)))
+                    .Select(punchedCardsPerLabel =>
+                        Tuple.Create(punchedCardsPerLabel, RecognitionHelper.CalculateMaxLoss(punchedCardsPerLabel, experts, label)))
                     .OrderByDescending(tuple => tuple.Item2)
                     .Take(topPunchedCardsPerKeyPerLabelCount)
                     .Select(tuple => tuple.Item1);

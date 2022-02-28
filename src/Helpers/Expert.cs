@@ -85,7 +85,7 @@ namespace PunchedCards.Helpers
                 {
                     weightMatrix[maxSpanningTreeEdge.Item1, maxSpanningTreeEdge.Item2, maxSpanningTreeEdge.Item3] = int.MinValue;
                 }
-            };
+            }
         }
 
         private static int[,,] CalculateWeightMatrix(IReadOnlyCollection<IBitVector> bitVectors)
