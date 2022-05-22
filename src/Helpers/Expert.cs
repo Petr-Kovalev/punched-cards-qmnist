@@ -14,7 +14,7 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IReadOnlyCollection<Tuple<uint, uint, byte, int>>>> _maxSpanningTreesEdges;
+        private readonly IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IReadOnlyCollection<ValueTuple<uint, uint, byte, int>>>> _maxSpanningTreesEdges;
         private readonly IReadOnlyDictionary<IBitVector, int> _maxSpanningTreesWeightSums;
         private readonly IList<IBitVector> _labels;
 
@@ -22,7 +22,7 @@ namespace PunchedCards.Helpers
         {
             _maxSpanningTreesEdges = trainingData.ToDictionary(
                 trainingItem => trainingItem.Key,
-                trainingItem => (IReadOnlyCollection<IReadOnlyCollection<Tuple<uint, uint, byte, int>>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel).ToList());
+                trainingItem => (IReadOnlyCollection<IReadOnlyCollection<ValueTuple<uint, uint, byte, int>>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel).ToList());
             _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(p => p.Key, p => p.Value.SelectMany(edge => edge).Sum(edge => edge.Item4));
             _labels = _maxSpanningTreesEdges.Keys.ToList();
         }
@@ -65,7 +65,7 @@ namespace PunchedCards.Helpers
             return (double)maxSpanningTreeWeightLoss / _maxSpanningTreesWeightSums[label];
         }
 
-        private static IEnumerable<IReadOnlyCollection<Tuple<uint, uint, byte, int>>> GetMaxSpanningTreesEdges(IReadOnlyCollection<IBitVector> bitVectors, int maxSpanningTreesCount)
+        private static IEnumerable<IReadOnlyCollection<ValueTuple<uint, uint, byte, int>>> GetMaxSpanningTreesEdges(IReadOnlyCollection<IBitVector> bitVectors, int maxSpanningTreesCount)
         {
             var weightMatrix = CalculateWeightMatrix(bitVectors);
 
@@ -113,7 +113,7 @@ namespace PunchedCards.Helpers
             return weightMatrix;
         }
 
-        private static IEnumerable<Tuple<uint, uint, byte, int>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
+        private static IEnumerable<ValueTuple<uint, uint, byte, int>> GetMaxSpanningTreeEdges(int[,,] weightMatrix)
         {
             var vertexCount = weightMatrix.GetLength(0);
             var connectedVertexIndices = new HashSet<uint>();
@@ -129,7 +129,7 @@ namespace PunchedCards.Helpers
             }
         }
 
-        private static void AppendEdge(Tuple<uint, uint, byte, int> edge, ISet<uint> connectedVertexIndices, ICollection<uint> notConnectedVertexIndices, bool[] vertexValues)
+        private static void AppendEdge(ValueTuple<uint, uint, byte, int> edge, ISet<uint> connectedVertexIndices, ICollection<uint> notConnectedVertexIndices, bool[] vertexValues)
         {
             vertexValues[edge.Item1] = edge.Item3 == TrueFalseEdgeIndex || edge.Item3 == TrueTrueEdgeIndex;
             vertexValues[edge.Item2] = edge.Item3 == FalseTrueEdgeIndex || edge.Item3 == TrueTrueEdgeIndex;
@@ -139,10 +139,11 @@ namespace PunchedCards.Helpers
             notConnectedVertexIndices.Remove(edge.Item2);
         }
 
-        private static bool TryGetNextMaxValidEdge(int[,,] weightMatrix, IEnumerable<Tuple<uint, uint, byte>> validEdges, out Tuple<uint, uint, byte, int> maxValidEdge)
+        private static bool TryGetNextMaxValidEdge(int[,,] weightMatrix, IEnumerable<ValueTuple<uint, uint, byte>> validEdges, out ValueTuple<uint, uint, byte, int> maxValidEdge)
         {
             var maxValidEdgeWeight = int.MinValue;
-            Tuple<uint, uint, byte> maxValidEdgeCoords = null;
+            ValueTuple<uint, uint, byte> maxValidEdgeCoords = default;
+            bool nextMaxValidEdgeFound = false;
 
             foreach (var validEdge in validEdges)
             {
@@ -151,50 +152,47 @@ namespace PunchedCards.Helpers
                 {
                     maxValidEdgeWeight = edgeWeight;
                     maxValidEdgeCoords = validEdge;
+                    nextMaxValidEdgeFound = true;
                 }
             }
 
-            if (maxValidEdgeCoords == null)
+            if (!nextMaxValidEdgeFound)
             {
-                maxValidEdge = null;
+                maxValidEdge = default;
                 return false;
             }
 
-            maxValidEdge = Tuple.Create(maxValidEdgeCoords.Item1, maxValidEdgeCoords.Item2, maxValidEdgeCoords.Item3, maxValidEdgeWeight);
+            maxValidEdge = ValueTuple.Create(maxValidEdgeCoords.Item1, maxValidEdgeCoords.Item2, maxValidEdgeCoords.Item3, maxValidEdgeWeight);
             return true;
         }
 
-        private static IEnumerable<Tuple<uint, uint, byte>> GetValidEdges(IEnumerable<uint> connectedVertexIndices, IReadOnlyCollection<uint> notConnectedVertexIndices, bool[] vertexValues)
+        private static IEnumerable<ValueTuple<uint, uint, byte>> GetValidEdges(IEnumerable<uint> connectedVertexIndices, IReadOnlyCollection<uint> notConnectedVertexIndices, bool[] vertexValues)
         {
             foreach (var connectedVertexIndex in connectedVertexIndices)
             {
                 var connectedVertexValue = vertexValues[connectedVertexIndex];
                 foreach (var notConnectedVertexIndex in notConnectedVertexIndices)
                 {
-                    if (connectedVertexIndex < notConnectedVertexIndex)
-                    {
-                        yield return Tuple.Create(connectedVertexIndex, notConnectedVertexIndex, connectedVertexValue ? TrueFalseEdgeIndex : FalseFalseEdgeIndex);
-                        yield return Tuple.Create(connectedVertexIndex, notConnectedVertexIndex, connectedVertexValue ? TrueTrueEdgeIndex : FalseTrueEdgeIndex);
-                    }
-                    else
-                    {
-                        yield return Tuple.Create(notConnectedVertexIndex, connectedVertexIndex, connectedVertexValue ? FalseTrueEdgeIndex : FalseFalseEdgeIndex);
-                        yield return Tuple.Create(notConnectedVertexIndex, connectedVertexIndex, connectedVertexValue ? TrueTrueEdgeIndex : TrueFalseEdgeIndex);
-                    }
+                    var noSwap = connectedVertexIndex < notConnectedVertexIndex;
+                    var firstVertexIndex = noSwap ? connectedVertexIndex : notConnectedVertexIndex;
+                    var secondVertexIndex = noSwap ? notConnectedVertexIndex : connectedVertexIndex;
+
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(!noSwap || connectedVertexValue, noSwap || connectedVertexValue));
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(noSwap && connectedVertexValue, !noSwap && connectedVertexValue));
                 }
             }
         }
 
-        private static IEnumerable<Tuple<uint, uint, byte>> GetAllValidEdges(int vertexCount)
+        private static IEnumerable<ValueTuple<uint, uint, byte>> GetAllValidEdges(int vertexCount)
         {
             for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
             {
                 for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                 {
-                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, FalseFalseEdgeIndex);
-                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, TrueFalseEdgeIndex);
-                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, FalseTrueEdgeIndex);
-                    yield return Tuple.Create(firstVertexIndex, secondVertexIndex, TrueTrueEdgeIndex);
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, FalseFalseEdgeIndex);
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, TrueFalseEdgeIndex);
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, FalseTrueEdgeIndex);
+                    yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, TrueTrueEdgeIndex);
                 }
             }
         }
