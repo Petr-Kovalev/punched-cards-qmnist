@@ -90,17 +90,22 @@ namespace PunchedCards.Helpers
 
         private static int[,,] CalculateWeightMatrix(IReadOnlyCollection<IBitVector> bitVectors)
         {
-            uint vertexCount = bitVectors.First().Count;
+            var vertexCount = bitVectors.First().Count;
+            var bitActivityBoolArray = new bool[vertexCount];
 
             var weightMatrix = new int[vertexCount, vertexCount, 4];
             foreach (var bitVector in bitVectors)
             {
+                for (uint bitIndex = 0; bitIndex < vertexCount; bitIndex++)
+                {
+                    bitActivityBoolArray[bitIndex] = bitVector.IsActive(bitIndex);
+                }
+
                 for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
-                    var firstVertexValue = bitVector.IsActive(firstVertexIndex);
                     for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                     {
-                        weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(firstVertexValue, bitVector.IsActive(secondVertexIndex))]++;
+                        weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(bitActivityBoolArray[firstVertexIndex], bitActivityBoolArray[secondVertexIndex])]++;
                     }
                 }
             }
