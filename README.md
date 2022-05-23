@@ -8,6 +8,8 @@ Bit vector set similarity evaluation using the maximum spanning tree is describe
 
 Same algorithm applied to the Fashion-MNIST dataset [is here](https://github.com/Petr-Kovalev/punched-cards-fashion-mnist)
 
+Same algorithm applied to the Oracle-MNIST dataset [is here](https://github.com/Petr-Kovalev/punched-cards-oracle-mnist)
+
 ### Program output:
 ```
 Punched card bit length: 8
