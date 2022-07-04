@@ -32,37 +32,37 @@ namespace PunchedCards.Helpers
             return new Expert(trainingData);
         }
 
-        public double CalculateLoss(IBitVector bitVector, IBitVector label)
+        public double CalculateMatchingScore(IBitVector bitVector, IBitVector label)
         {
-            return CalculateLossPerLabel(bitVector, label);
+            return CalculateMatchingScorePerLabel(bitVector, label);
         }
 
-        public IReadOnlyDictionary<IBitVector, double> CalculateLosses(IBitVector bitVector)
+        public IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(IBitVector bitVector)
         {
-            var lossesPerLabel = CalculateLossesPerLabel(bitVector);
-            return Enumerable.Range(0, _labels.Count).ToDictionary(index => _labels[index], index => lossesPerLabel[index]);
+            var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(bitVector);
+            return Enumerable.Range(0, _labels.Count).ToDictionary(index => _labels[index], index => matchingScoresPerLabel[index]);
         }
 
-        private double[] CalculateLossesPerLabel(IBitVector bitVector)
+        private double[] CalculateMatchingScoresPerLabel(IBitVector bitVector)
         {
-            var lossesPerLabel = _labels.Select(currentLabel => CalculateLossPerLabel(bitVector, currentLabel)).ToArray();
-            //Softmax(lossesPerLabel);
-            return lossesPerLabel;
+            var matchingScoresPerLabel = _labels.Select(currentLabel => CalculateMatchingScorePerLabel(bitVector, currentLabel)).ToArray();
+            //Softmax(matchingScoresPerLabel);
+            return matchingScoresPerLabel;
         }
 
-        private double CalculateLossPerLabel(IBitVector bitVector, IBitVector label)
+        private double CalculateMatchingScorePerLabel(IBitVector bitVector, IBitVector label)
         {
-            var maxSpanningTreeWeightLoss = 0;
+            var maxSpanningTreeWeight = 0;
             foreach (var edge in _maxSpanningTreesEdges[label].SelectMany(edge => edge))
             {
                 var edgeIndex = GetEdgeIndexByVertexValues(bitVector.IsActive(edge.Item1), bitVector.IsActive(edge.Item2));
-                if (edgeIndex != edge.Item3)
+                if (edgeIndex == edge.Item3)
                 {
-                    maxSpanningTreeWeightLoss += edge.Item4;
+                    maxSpanningTreeWeight += edge.Item4;
                 }
             }
 
-            return (double)maxSpanningTreeWeightLoss / _maxSpanningTreesWeightSums[label];
+            return (double)maxSpanningTreeWeight / _maxSpanningTreesWeightSums[label];
         }
 
         private static IEnumerable<IReadOnlyCollection<ValueTuple<uint, uint, byte, int>>> GetMaxSpanningTreesEdges(IReadOnlyCollection<IBitVector> bitVectors, int maxSpanningTreesCount)

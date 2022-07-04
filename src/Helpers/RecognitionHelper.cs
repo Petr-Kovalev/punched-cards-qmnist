@@ -21,14 +21,14 @@ namespace PunchedCards.Helpers
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var lossPerLabelPerPunchedCard =
-                        CalculateLossPerLabelPerPunchedCard(
+                    var matchingScoresPerLabelPerPunchedCard =
+                        CalculateMatchingScoresPerLabelPerPunchedCard(
                             punchedCardsCollection,
                             dataItem.Item1,
                             puncher,
                             experts);
-                    var topLabel = lossPerLabelPerPunchedCard
-                        .MinBy(p => p.Value.Sum(keyScore => keyScore.Value))
+                    var topLabel = matchingScoresPerLabelPerPunchedCard
+                        .MaxBy(p => p.Value.Sum(keyScore => keyScore.Value))
                         .Key;
                     if (topLabel.Equals(dataItem.Item2))
                     {
@@ -48,45 +48,45 @@ namespace PunchedCards.Helpers
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
-        internal static double CalculateMaxLoss(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts, IBitVector label)
+        internal static double CalculateMinMatchingScore(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts, IBitVector label)
         {
             var expert = experts[punchedCardsPerLabel.Key];
-            return punchedCardsPerLabel.Value[label].Max(input => expert.CalculateLoss(input, label));
+            return punchedCardsPerLabel.Value[label].Min(input => expert.CalculateMatchingScore(input, label));
         }
 
-        internal static double CalculateMaxLossSum(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts)
+        internal static double CalculateMinMatchingScoresSum(KeyValuePair<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel, IReadOnlyDictionary<string, IExpert> experts)
         {
             var expert = experts[punchedCardsPerLabel.Key];
-            return punchedCardsPerLabel.Value.Sum(labelAndInputs => labelAndInputs.Value.Max(input => expert.CalculateLoss(input, labelAndInputs.Key)));
+            return punchedCardsPerLabel.Value.Sum(labelAndInputs => labelAndInputs.Value.Min(input => expert.CalculateMatchingScore(input, labelAndInputs.Key)));
         }
 
         private static IReadOnlyDictionary<IBitVector, IReadOnlyDictionary<string, double>>
-            CalculateLossPerLabelPerPunchedCard(
+            CalculateMatchingScoresPerLabelPerPunchedCard(
                 IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection,
                 IBitVector input,
                 IPuncher<string, IBitVector, IBitVector> puncher,
                 IReadOnlyDictionary<string, IExpert> experts)
         {
-            var lossPerLabelPerPunchedCard = new Dictionary<IBitVector, IReadOnlyDictionary<string, double>>();
+            var matchinScoresPerLabelPerPunchedCard = new Dictionary<IBitVector, IReadOnlyDictionary<string, double>>();
 
             foreach (var punchedCardsCollectionItem in punchedCardsCollection)
             {
                 var expert = experts[punchedCardsCollectionItem.Key];
                 var punchedInput = puncher.Punch(punchedCardsCollectionItem.Key, input).Input;
-                var losses = expert.CalculateLosses(punchedInput);
+                var matchingScores = expert.CalculateMatchingScores(punchedInput);
                 foreach (var label in punchedCardsCollectionItem.Value)
                 {
-                    if (!lossPerLabelPerPunchedCard.TryGetValue(label.Key, out var dictionary))
+                    if (!matchinScoresPerLabelPerPunchedCard.TryGetValue(label.Key, out var dictionary))
                     {
                         dictionary = new Dictionary<string, double>();
-                        lossPerLabelPerPunchedCard.Add(label.Key, dictionary);
+                        matchinScoresPerLabelPerPunchedCard.Add(label.Key, dictionary);
                     }
 
-                    ((Dictionary<string, double>)dictionary).Add(punchedCardsCollectionItem.Key, losses[label.Key]);
+                    ((Dictionary<string, double>)dictionary).Add(punchedCardsCollectionItem.Key, matchingScores[label.Key]);
                 }
             }
 
-            return lossPerLabelPerPunchedCard;
+            return matchinScoresPerLabelPerPunchedCard;
         }
     }
 }
