@@ -2,7 +2,7 @@
 
 namespace PunchedCards
 {
-    internal class PunchedCard<TKey, TInput> : IPunchedCard<TKey, TInput>
+    internal sealed class PunchedCard<TKey, TInput> : IPunchedCard<TKey, TInput>
     {
         internal PunchedCard(TKey key, TInput input)
         {
