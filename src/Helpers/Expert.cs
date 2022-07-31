@@ -32,11 +32,6 @@ namespace PunchedCards.Helpers
             return new Expert(trainingData);
         }
 
-        public double CalculateMatchingScore(IBitVector bitVector, IBitVector label)
-        {
-            return CalculateMatchingScorePerLabel(bitVector, label);
-        }
-
         public IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(IBitVector bitVector)
         {
             var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(bitVector);
@@ -46,7 +41,7 @@ namespace PunchedCards.Helpers
         private double[] CalculateMatchingScoresPerLabel(IBitVector bitVector)
         {
             var matchingScoresPerLabel = _labels.Select(currentLabel => CalculateMatchingScorePerLabel(bitVector, currentLabel)).ToArray();
-            //Softmax(matchingScoresPerLabel);
+            Softmax(matchingScoresPerLabel);
             return matchingScoresPerLabel;
         }
 
