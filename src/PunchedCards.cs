@@ -27,8 +27,13 @@ namespace PunchedCards
                 var punchedCardsPerLabel = GetPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, experts);
 
                 Console.WriteLine();
-                Console.WriteLine("Top expert per input:");
+                Console.WriteLine("Top punched card per input:");
                 WriteTrainingAndTestResults(punchedCardsPerLabel, trainingData, testData, puncher, experts, 1);
+
+                Console.WriteLine();
+                var count = (int)(experts.Count * 0.05);
+                Console.WriteLine($"Top {count} (5%) punched cards per input:");
+                WriteTrainingAndTestResults(punchedCardsPerLabel, trainingData, testData, puncher, experts, count);
 
                 Console.WriteLine();
                 Console.WriteLine("All punched cards:");
@@ -47,51 +52,21 @@ namespace PunchedCards
             List<Tuple<IBitVector, IBitVector>> testData,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IReadOnlyDictionary<string, IExpert> experts,
-            int? topExpertsCount = null)
+            int? topPunchedCardsCount = null)
         {
-            Console.WriteLine("Unique input combinations per punched card (descending): " +
-                              GetPunchedCardsPerLabelString(punchedCardsPerLabel));
-
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, punchedCardsPerLabel, puncher, experts, BitVectorFactory, topExpertsCount);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, punchedCardsPerLabel, puncher, experts, BitVectorFactory, topPunchedCardsCount);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, punchedCardsPerLabel, puncher, experts, BitVectorFactory, topExpertsCount);
+                RecognitionHelper.CountCorrectRecognitions(testData, punchedCardsPerLabel, puncher, experts, BitVectorFactory, topPunchedCardsCount);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + testData.Count);
-        }
-
-        private static string GetPunchedCardsPerLabelString(
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerLabel)
-        {
-            var punchedCardsPerLabelUniqueLookupCounts = punchedCardsPerLabel
-                .Select(punchedCardPerLabel =>
-                    Tuple.Create(
-                        (IReadOnlyCollection<int>)punchedCardPerLabel.Value
-                            .Select(punchedCard => punchedCard.Value.Distinct().Count())
-                            .OrderByDescending(count => count)
-                            .ToList(),
-                        punchedCardPerLabel.Value.Sum(punchedCard => punchedCard.Value.Distinct().Count())))
-                .OrderByDescending(countsAndSum => countsAndSum.Item2)
-                .ToList();
-            return string.Join(", ",
-                       punchedCardsPerLabelUniqueLookupCounts.Select(uniqueLookupCounts =>
-                           $"{{{GetUniqueLookupsCountsString(uniqueLookupCounts)}}}")) + ": total sum " +
-                   punchedCardsPerLabelUniqueLookupCounts.Sum(uniqueLookupCounts => uniqueLookupCounts.Item2);
-        }
-
-        private static string GetUniqueLookupsCountsString(Tuple<IReadOnlyCollection<int>, int> uniqueLookupCounts)
-        {
-            var valuesString = string.Join(", ", uniqueLookupCounts.Item1);
-            return uniqueLookupCounts.Item1.Count <= 1
-                ? valuesString
-                : valuesString + ": sum " + uniqueLookupCounts.Item2;
         }
 
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>

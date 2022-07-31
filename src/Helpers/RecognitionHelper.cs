@@ -14,29 +14,19 @@ namespace PunchedCards.Helpers
             IPuncher<string, IBitVector, IBitVector> puncher,
             IReadOnlyDictionary<string, IExpert> experts,
             IBitVectorFactory bitVectorFactory,
-            int? topExpertsCount)
+            int? topPunchedCardsCount)
         {
             var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new int[1]);
 
-            var labels = DataHelper.GetLabels(bitVectorFactory).ToList();
             data
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var tt = new Dictionary<string, double[]>();
+                    var matchinScoresPerPunchedCard = new Dictionary<string, IReadOnlyDictionary<IBitVector, double>>();
                     foreach (var punchedCardsCollectionItem in punchedCardsCollection)
                     {
-                        var expert = experts[punchedCardsCollectionItem.Key];
                         var punchedInput = puncher.Punch(punchedCardsCollectionItem.Key, dataItem.Item1).Input;
-                        var matchingScores = expert.CalculateMatchingScores(punchedInput);
-
-                        tt.Add(punchedCardsCollectionItem.Key, labels.Select(l => matchingScores[l]).ToArray());
-                    }
-
-                    if (topExpertsCount.HasValue)
-                    {
-                        var topKeys = tt.Keys.OrderByDescending(k => tt[k].Max()).Take(topExpertsCount.Value);
-                        tt = topKeys.ToDictionary(k => k, k => tt[k]);
+                        matchinScoresPerPunchedCard.Add(punchedCardsCollectionItem.Key, experts[punchedCardsCollectionItem.Key].CalculateMatchingScores(punchedInput));
                     }
 
                     //foreach (var key in tt.Keys)
@@ -52,12 +42,31 @@ namespace PunchedCards.Helpers
                     //    }
                     //}
 
-                    var sums = new Dictionary<IBitVector, double>();
-                    for(int i=0; i<labels.Count; i++)
+                    IEnumerable<string> punchedCardKeys;
+                    if (!topPunchedCardsCount.HasValue)
                     {
-                        sums[labels[i]] = tt.Keys.Sum(k => tt[k][i]);
+                        punchedCardKeys = matchinScoresPerPunchedCard.Keys;
                     }
-                    var topLabel = sums
+                    else
+                    {
+                        punchedCardKeys = matchinScoresPerPunchedCard.OrderByDescending(p => p.Value.Values.Max()).Take(topPunchedCardsCount.Value).Select(p => p.Key);
+                    }
+
+                    var matchingScoresPerLabel = new Dictionary<IBitVector, double>();
+                    foreach (var label in counters.Keys)
+                    {
+                        matchingScoresPerLabel.Add(label, 0);
+                    }
+                    foreach (var punchedCardKey in punchedCardKeys)
+                    {
+                        var matchingScores = matchinScoresPerPunchedCard[punchedCardKey];
+                        foreach (var label in counters.Keys)
+                        {
+                            matchingScoresPerLabel[label] += matchingScores[label];
+                        }
+                    }
+
+                    var topLabel = matchingScoresPerLabel
                         .MaxBy(p => p.Value)
                         .Key;
 
