@@ -11,7 +11,7 @@ namespace PunchedCards.Helpers
         internal static IEnumerable<KeyValuePair<IBitVector, int>> CountCorrectRecognitions(
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
-            IReadOnlyDictionary<string, IExpert> experts,
+            IReadOnlyDictionary<string, IExpert> expertsPerKey,
             IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
@@ -21,29 +21,22 @@ namespace PunchedCards.Helpers
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var matchingScoresPerPunchedCard = new Dictionary<string, IReadOnlyDictionary<IBitVector, double>>();
-                    foreach (var expert in experts)
+                    var matchingScoresPerKey = new Dictionary<string, IReadOnlyDictionary<IBitVector, double>>();
+                    foreach (var expertPerKey in expertsPerKey)
                     {
-                        var punchedInput = puncher.Punch(expert.Key, dataItem.Item1).Input;
-                        matchingScoresPerPunchedCard.Add(expert.Key, expert.Value.CalculateMatchingScores(punchedInput));
+                        var punchedInput = puncher.Punch(expertPerKey.Key, dataItem.Item1).Input;
+                        matchingScoresPerKey.Add(expertPerKey.Key, expertPerKey.Value.CalculateMatchingScores(punchedInput));
                     }
 
-                    var punchedCardKeys = !topPunchedCardsCount.HasValue ? matchingScoresPerPunchedCard.Keys : matchingScoresPerPunchedCard.OrderByDescending(p => p.Value.Values.Max()).Take(topPunchedCardsCount.Value).Select(p => p.Key);
+                    var punchedCardKeys = 
+                        !topPunchedCardsCount.HasValue ?
+                            matchingScoresPerKey.Keys : 
+                            matchingScoresPerKey
+                                .OrderByDescending(p => p.Value.Values.Max())
+                                .Take(topPunchedCardsCount.Value)
+                                .Select(p => p.Key);
 
-                    var matchingScoresPerLabel = new Dictionary<IBitVector, double>();
-                    foreach (var label in counters.Keys)
-                    {
-                        matchingScoresPerLabel.Add(label, 0);
-                    }
-                    foreach (var punchedCardKey in punchedCardKeys)
-                    {
-                        var matchingScores = matchingScoresPerPunchedCard[punchedCardKey];
-                        foreach (var label in counters.Keys)
-                        {
-                            matchingScoresPerLabel[label] += matchingScores[label];
-                        }
-                    }
-
+                    var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(counters.Keys, punchedCardKeys, matchingScoresPerKey);
                     var topLabel = matchingScoresPerLabel
                         .MaxBy(p => p.Value)
                         .Key;
@@ -57,12 +50,29 @@ namespace PunchedCards.Helpers
             return counters.ToDictionary(p => p.Key, p => p.Value[0]);
         }
 
-        internal static IReadOnlyDictionary<string, IExpert> CreateExperts(IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsCollection)
+        private static Dictionary<IBitVector, double> CalculateMatchingScoresPerLabel(IReadOnlyCollection<IBitVector> labels, IEnumerable<string> punchedCardKeys,
+            IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, double>> matchingScoresPerKey)
         {
-            return punchedCardsCollection
+            var matchingScoresPerLabel = labels.ToDictionary(label => label, _ => 0d);
+
+            foreach (var punchedCardKey in punchedCardKeys)
+            {
+                var matchingScores = matchingScoresPerKey[punchedCardKey];
+                foreach (var label in labels)
+                {
+                    matchingScoresPerLabel[label] += matchingScores[label];
+                }
+            }
+
+            return matchingScoresPerLabel;
+        }
+
+        internal static IReadOnlyDictionary<string, IExpert> CreateExperts(IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> trainingPunchedCardsPerKeyPerLabel)
+        {
+            return trainingPunchedCardsPerKeyPerLabel
                 .AsParallel()
-                .Select(punchedCardsCollectionItem =>
-                    Tuple.Create(punchedCardsCollectionItem.Key, Expert.Create(punchedCardsCollectionItem.Value)))
+                .Select(punchedCardsPerKeyPerLabel =>
+                    Tuple.Create(punchedCardsPerKeyPerLabel.Key, Expert.Create(punchedCardsPerKeyPerLabel.Value)))
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
     }

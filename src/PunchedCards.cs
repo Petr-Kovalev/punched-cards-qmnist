@@ -23,20 +23,20 @@ namespace PunchedCards
 
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
                 var trainingPunchedCardsPerKeyPerLabel = GetPunchedCardsPerKeyPerLabel(trainingData, puncher);
-                var experts = RecognitionHelper.CreateExperts(trainingPunchedCardsPerKeyPerLabel);
+                var expertsPerKey = RecognitionHelper.CreateExperts(trainingPunchedCardsPerKeyPerLabel);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
-                WriteTrainingAndTestResults(trainingData, testData, experts, puncher, 1);
+                WriteTrainingAndTestResults(trainingData, testData, expertsPerKey, puncher, 1);
 
                 Console.WriteLine();
-                var count = (int)(experts.Count * 0.05);
+                var count = (int)(expertsPerKey.Count * 0.05);
                 Console.WriteLine($"Top {count} (5%) punched cards per input:");
-                WriteTrainingAndTestResults(trainingData, testData, experts, puncher, count);
+                WriteTrainingAndTestResults(trainingData, testData, expertsPerKey, puncher, count);
 
                 Console.WriteLine();
                 Console.WriteLine("All punched cards:");
-                WriteTrainingAndTestResults(trainingData, testData, experts, puncher);
+                WriteTrainingAndTestResults(trainingData, testData, expertsPerKey, puncher);
 
                 Console.WriteLine();
             }
@@ -48,19 +48,19 @@ namespace PunchedCards
         private static void WriteTrainingAndTestResults(
             IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
             IReadOnlyCollection<Tuple<IBitVector, IBitVector>> testData,
-            IReadOnlyDictionary<string, IExpert> experts,
+            IReadOnlyDictionary<string, IExpert> expertsPerKey,
             IPuncher<string, IBitVector, IBitVector> puncher,
             int? topPunchedCardsCount = null)
         {
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, experts, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, puncher, experts, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(testData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
