@@ -22,8 +22,7 @@ namespace PunchedCards
                 Console.WriteLine("Punched card bit length: " + punchedCardBitLength);
 
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
-                var trainingPunchedCardsPerKeyPerLabel = GetPunchedCardsPerKeyPerLabel(trainingData, puncher);
-                var expertsPerKey = RecognitionHelper.CreateExperts(trainingPunchedCardsPerKeyPerLabel);
+                var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
