@@ -23,8 +23,8 @@ namespace PunchedCards
 
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
                 var punchedCardsPerKeyPerLabel = GetPunchedCardsPerKeyPerLabel(trainingData, puncher);
+                var punchedCardsPerLabel = GetPunchedCardsPerLabel(punchedCardsPerKeyPerLabel);
                 var experts = RecognitionHelper.CreateExperts(punchedCardsPerKeyPerLabel);
-                var punchedCardsPerLabel = GetPunchedCardsPerLabel(punchedCardsPerKeyPerLabel, experts);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
@@ -70,9 +70,7 @@ namespace PunchedCards
         }
 
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
-            GetPunchedCardsPerLabel(
-                IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel,
-                IReadOnlyDictionary<string, IExpert> experts)
+            GetPunchedCardsPerLabel(IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>> punchedCardsPerKeyPerLabel)
         {
             var topPunchedCardsPerKeyPerLabel =
                 new Dictionary<string, IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>();
