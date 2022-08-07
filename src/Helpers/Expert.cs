@@ -41,7 +41,7 @@ namespace PunchedCards.Helpers
         private double[] CalculateMatchingScoresPerLabel(IBitVector bitVector)
         {
             var matchingScoresPerLabel = _labels.Select(currentLabel => CalculateMatchingScorePerLabel(bitVector, currentLabel)).ToArray();
-            Softmax(matchingScoresPerLabel);
+            SoftMax(matchingScoresPerLabel);
             return matchingScoresPerLabel;
         }
 
@@ -207,17 +207,17 @@ namespace PunchedCards.Helpers
                 }
             };
 
-        private static void Softmax(double[] values)
+        private static void SoftMax(IList<double> values)
         {
             double divisor = 0;
-            for (int i = 0; i < values.Length; i++)
+            for (var i = 0; i < values.Count; i++)
             {
                 var exp = Math.Exp(values[i]);
-                divisor += exp;
                 values[i] = exp;
+                divisor += exp;
             }
 
-            for (int i = 0; i < values.Length; i++)
+            for (var i = 0; i < values.Count; i++)
             {
                 values[i] /= divisor;
             }
