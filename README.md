@@ -2,7 +2,7 @@
 
 *Object recognition by sparse random binary data lookup. Based on [this article](https://petr-kovalev.medium.com/punched-cards-object-recognition-97523a98857b)*
 
-Performing single-shot QMNIST handwritten digits recognition by lookup over the most different sparse input bit sets of the training data (out of 28⋅28⋅8 = 6272 bits per training sample)
+Performing single-shot QMNIST handwritten digits recognition by lookup over the most representative sparse input bit sets of the training data (out of 28⋅28⋅8 = 6272 bits per training sample)
 
 Bit vector set similarity evaluation using the maximum spanning tree is described in [this article](https://petr-kovalev.medium.com/bit-vector-set-similarity-maximum-spanning-tree-2121b05c7b29)
 
