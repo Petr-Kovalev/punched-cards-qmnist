@@ -21,7 +21,8 @@ namespace PunchedCards.Helpers
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(dataItem, expertsPerKey, puncher, bitVectorFactory, topPunchedCardsCount);
+                    var matchingScores = CalculateMatchingScores(dataItem.Item1, expertsPerKey, puncher).ToList();
+                    var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(matchingScores, bitVectorFactory, topPunchedCardsCount);
                     var topLabel = matchingScoresPerLabel
                         .MaxBy(p => p.Value)
                         .Key;
@@ -45,26 +46,28 @@ namespace PunchedCards.Helpers
         }
 
         private static IEnumerable<KeyValuePair<IBitVector, double>> CalculateMatchingScoresPerLabel(
-            Tuple<IBitVector, IBitVector> dataItem,
-            IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
-            IPuncher<string, IBitVector, IBitVector> puncher,
+            IReadOnlyCollection<IReadOnlyDictionary<IBitVector, double>> matchingScoresCollection,
             IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
-            var matchingScores = expertsPerKey
-                .Select(expertPerKey => expertPerKey.Value.CalculateMatchingScores(puncher.Punch(expertPerKey.Key, dataItem.Item1).Input))
-                .ToList();
-
             var topMatchingScores =
                 !topPunchedCardsCount.HasValue
-                    ? matchingScores
-                    : matchingScores
+                    ? matchingScoresCollection
+                    : matchingScoresCollection
                         .OrderByDescending(p => p.Values.Max())
                         .Take(topPunchedCardsCount.Value)
                         .ToList();
 
             return DataHelper.GetLabels(bitVectorFactory).Select(label =>
                 KeyValuePair.Create(label, topMatchingScores.Sum(matchingScores => matchingScores[label])));
+        }
+
+        private static IEnumerable<IReadOnlyDictionary<IBitVector, double>> CalculateMatchingScores(
+            IBitVector bitVector,
+            IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
+            IPuncher<string, IBitVector, IBitVector> puncher)
+        {
+            return expertsPerKey.Select(expertPerKey => expertPerKey.Value.CalculateMatchingScores(puncher.Punch(expertPerKey.Key, bitVector).Input));
         }
     }
 }
