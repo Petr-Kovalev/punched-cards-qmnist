@@ -11,7 +11,7 @@ namespace PunchedCards.Helpers
         internal static IEnumerable<KeyValuePair<IBitVector, int>> CountCorrectRecognitions(
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
-            IReadOnlyDictionary<string, IExpert> expertsPerKey,
+            IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
             IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
@@ -21,7 +21,7 @@ namespace PunchedCards.Helpers
                 .AsParallel()
                 .ForAll(dataItem =>
                 {
-                    var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(dataItem, expertsPerKey, puncher, topPunchedCardsCount);
+                    var matchingScoresPerLabel = CalculateMatchingScoresPerLabel(dataItem, expertsPerKey, puncher, bitVectorFactory, topPunchedCardsCount);
                     var topLabel = matchingScoresPerLabel
                         .MaxBy(p => p.Value)
                         .Key;
@@ -44,48 +44,27 @@ namespace PunchedCards.Helpers
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
-        private static IReadOnlyDictionary<IBitVector, double> CalculateMatchingScoresPerLabel(
+        private static IEnumerable<KeyValuePair<IBitVector, double>> CalculateMatchingScoresPerLabel(
             Tuple<IBitVector, IBitVector> dataItem,
-            IReadOnlyDictionary<string, IExpert> expertsPerKey,
+            IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
             IPuncher<string, IBitVector, IBitVector> puncher,
+            IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
-            var matchingScoresPerKey = new Dictionary<string, IReadOnlyDictionary<IBitVector, double>>();
-            foreach (var expertPerKey in expertsPerKey)
-            {
-                var punchedInput = puncher.Punch(expertPerKey.Key, dataItem.Item1).Input;
-                matchingScoresPerKey.Add(expertPerKey.Key, expertPerKey.Value.CalculateMatchingScores(punchedInput));
-            }
+            var matchingScores = expertsPerKey
+                .Select(expertPerKey => expertPerKey.Value.CalculateMatchingScores(puncher.Punch(expertPerKey.Key, dataItem.Item1).Input))
+                .ToList();
 
-            var punchedCardKeys =
+            var topMatchingScores =
                 !topPunchedCardsCount.HasValue
-                    ? matchingScoresPerKey.Keys
-                    : matchingScoresPerKey
-                        .OrderByDescending(p => p.Value.Values.Max())
+                    ? matchingScores
+                    : matchingScores
+                        .OrderByDescending(p => p.Values.Max())
                         .Take(topPunchedCardsCount.Value)
-                        .Select(p => p.Key);
+                        .ToList();
 
-            return CalculateMatchingScoresPerLabel(punchedCardKeys, matchingScoresPerKey);
-        }
-
-        private static IReadOnlyDictionary<IBitVector, double> CalculateMatchingScoresPerLabel(
-            IEnumerable<string> punchedCardKeys,
-            IReadOnlyDictionary<string, IReadOnlyDictionary<IBitVector, double>> matchingScoresPerKey)
-        {
-            IDictionary<IBitVector, double> matchingScoresPerLabel = null;
-
-            foreach (var punchedCardKey in punchedCardKeys)
-            {
-                var matchingScores = matchingScoresPerKey[punchedCardKey];
-                matchingScoresPerLabel ??= matchingScores.Keys.ToDictionary(label => label, _ => 0d);
-
-                foreach (var label in matchingScores.Keys)
-                {
-                    matchingScoresPerLabel[label] += matchingScores[label];
-                }
-            }
-
-            return (IReadOnlyDictionary<IBitVector, double>)matchingScoresPerLabel;
+            return DataHelper.GetLabels(bitVectorFactory).Select(label =>
+                KeyValuePair.Create(label, topMatchingScores.Sum(matchingScores => matchingScores[label])));
         }
     }
 }
