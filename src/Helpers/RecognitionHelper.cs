@@ -30,7 +30,6 @@ namespace PunchedCards.Helpers
                     {
                         Interlocked.Increment(ref counters[topLabel][0]);
                     }
-
                 });
 
             return counters.ToDictionary(p => p.Key, p => p.Value[0]);
