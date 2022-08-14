@@ -48,9 +48,7 @@ namespace PunchedCards.Helpers
                 var maxSpanningTreeWeight = 0;
                 foreach (var edge in _maxSpanningTreesEdges[label].SelectMany(edge => edge))
                 {
-                    var edgeIndex = GetEdgeIndexByVertexValues(
-                        bitActivityBoolArray[edge.Item1],
-                        bitActivityBoolArray[edge.Item2]);
+                    var edgeIndex = GetEdgeIndexByVertexValues(bitActivityBoolArray[edge.Item1], bitActivityBoolArray[edge.Item2]);
                     if (edgeIndex == edge.Item3)
                     {
                         maxSpanningTreeWeight += edge.Item4;
