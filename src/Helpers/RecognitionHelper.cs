@@ -68,12 +68,12 @@ namespace PunchedCards.Helpers
         }
 
         private static IEnumerable<KeyValuePair<IBitVector, double>> CalculateMatchingScoresPerLabel(
-            IReadOnlyCollection<KeyValuePair<string, IReadOnlyDictionary<IBitVector, double>>> topMatchingScoresPerKey,
+            IReadOnlyCollection<KeyValuePair<string, IReadOnlyDictionary<IBitVector, double>>> matchingScoresPerKey,
             IBitVectorFactory bitVectorFactory)
         {
             return DataHelper.GetLabels(bitVectorFactory).Select(label => KeyValuePair.Create(
                 label,
-                topMatchingScoresPerKey.Sum(matchingScores => matchingScores.Value[label])));
+                matchingScoresPerKey.Sum(matchingScores => matchingScores.Value[label])));
         }
     }
 }
