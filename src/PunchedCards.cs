@@ -73,6 +73,7 @@ namespace PunchedCards
                 IPuncher<string, IBitVector, IBitVector> puncher)
         {
             var count = trainingData[0].Item1.Count;
+
             return puncher
                 .GetKeys(count)
                 .AsParallel()
