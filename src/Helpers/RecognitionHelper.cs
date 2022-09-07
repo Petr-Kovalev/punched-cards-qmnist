@@ -8,14 +8,14 @@ namespace PunchedCards.Helpers
 {
     internal static class RecognitionHelper
     {
-        internal static IEnumerable<KeyValuePair<IBitVector, int>> CountCorrectRecognitions(
+        internal static IEnumerable<KeyValuePair<IBitVector, uint>> CountCorrectRecognitions(
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
             IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
-            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new int[1]);
+            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new uint[1]);
 
             data
                 .AsParallel()
