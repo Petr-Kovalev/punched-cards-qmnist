@@ -14,7 +14,7 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IReadOnlyCollection<ValueTuple<uint, uint, byte, uint>>>> _maxSpanningTreesEdges;
+        private readonly IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
         private readonly IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
         private readonly IList<IBitVector> _labels;
 
@@ -22,9 +22,13 @@ namespace PunchedCards.Helpers
         {
             _maxSpanningTreesEdges = trainingData.ToDictionary(
                 trainingItem => trainingItem.Key,
-                trainingItem => (IReadOnlyCollection<IReadOnlyCollection<ValueTuple<uint, uint, byte, uint>>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel).ToList());
-            _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(p => p.Key, p => (uint)p.Value.Sum(edge => edge.Sum(e => e.Item4)));
-            _labels = _maxSpanningTreesEdges.Keys.ToList();
+                trainingItem => (IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
+                    .Select(edge => edge.ToDictionary(
+                                    t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
+                                    t => (int)t.Item4))
+                    .ToArray());
+            _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(edges => edges.Key, edges => (uint)edges.Value.Sum(edge => edge.Values.Sum()));
+            _labels = _maxSpanningTreesEdges.Keys.ToArray();
         }
 
         internal static IExpert Create(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
@@ -34,27 +38,45 @@ namespace PunchedCards.Helpers
 
         public IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(IBitVector bitVector)
         {
-            var bitActivityBoolArray = new bool[bitVector.Count];
-            for (uint bitIndex = 0; bitIndex < bitActivityBoolArray.Length; bitIndex++)
-            {
-                bitActivityBoolArray[bitIndex] = bitVector.IsActive(bitIndex);
-            }
+            return CalculateMatchingScores(GetBitActivityBoolArray(bitVector));
+        }
 
+        public void Finetune(IBitVector bitVector, IBitVector label)
+        {
+            var bitActivityBoolArray = GetBitActivityBoolArray(bitVector);
+            var matchingScores = CalculateMatchingScores(bitActivityBoolArray);
+            var rightLabelMatchingScore = matchingScores[label];
+            foreach (var wrongLabel in _labels.Where(l => matchingScores[l] > rightLabelMatchingScore))
+            {
+                foreach (var wrongLabelEdges in _maxSpanningTreesEdges[wrongLabel])
+                {
+                    foreach (var commonEdge in wrongLabelEdges.Keys
+                        .Where(edge => edge.Item3 == GetEdgeIndexByVertexValues(bitActivityBoolArray[edge.Item1], bitActivityBoolArray[edge.Item2])))
+                    {
+                        foreach (var rightLabelEdges in _maxSpanningTreesEdges[label])
+                        {
+                            if (rightLabelEdges.ContainsKey(commonEdge))
+                            {
+                                rightLabelEdges[commonEdge]++;
+                                wrongLabelEdges[commonEdge]--;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(bool[] bitActivityBoolArray)
+        {
             var matchingScores = new double[_labels.Count];
 
             for (var labelIndex = 0; labelIndex < _labels.Count; labelIndex++)
             {
                 var label = _labels[labelIndex];
-                uint maxSpanningTreeWeight = 0;
-                foreach (var edge in _maxSpanningTreesEdges[label].SelectMany(edge => edge))
-                {
-                    var edgeIndex = GetEdgeIndexByVertexValues(bitActivityBoolArray[edge.Item1], bitActivityBoolArray[edge.Item2]);
-                    if (edgeIndex == edge.Item3)
-                    {
-                        maxSpanningTreeWeight += edge.Item4;
-                    }
-                }
-
+                var maxSpanningTreeWeight = _maxSpanningTreesEdges[label]
+                    .SelectMany(edges => edges)
+                    .Where(edge => edge.Key.Item3 == GetEdgeIndexByVertexValues(bitActivityBoolArray[edge.Key.Item1], bitActivityBoolArray[edge.Key.Item2]))
+                    .Sum(edge => edge.Value);
                 matchingScores[labelIndex] = (double)maxSpanningTreeWeight / _maxSpanningTreesWeightSums[label];
             }
 
@@ -65,14 +87,14 @@ namespace PunchedCards.Helpers
                 labelIndex => matchingScores[labelIndex]);
         }
 
-        private static IEnumerable<IReadOnlyCollection<ValueTuple<uint, uint, byte, uint>>> GetMaxSpanningTreesEdges(IReadOnlyCollection<IBitVector> bitVectors, int maxSpanningTreesCount)
+        private static IEnumerable<IEnumerable<ValueTuple<uint, uint, byte, uint>>> GetMaxSpanningTreesEdges(IReadOnlyCollection<IBitVector> bitVectors, int maxSpanningTreesCount)
         {
             var weightMatrix = CalculateWeightMatrix(bitVectors);
 
             int maxSpanningTreesCounter = 0;
             while (true)
             {
-                var maxSpanningTreeEdges = GetMaxSpanningTreeEdges(weightMatrix).ToList();
+                var maxSpanningTreeEdges = GetMaxSpanningTreeEdges(weightMatrix);
                 yield return maxSpanningTreeEdges;
 
                 maxSpanningTreesCounter++;
@@ -96,10 +118,7 @@ namespace PunchedCards.Helpers
             var weightMatrix = new uint[vertexCount, vertexCount, 4];
             foreach (var bitVector in bitVectors)
             {
-                for (uint bitIndex = 0; bitIndex < bitActivityBoolArray.Length; bitIndex++)
-                {
-                    bitActivityBoolArray[bitIndex] = bitVector.IsActive(bitIndex);
-                }
+                FillBitActivityBoolArray(bitVector, bitActivityBoolArray);
 
                 for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
@@ -225,6 +244,23 @@ namespace PunchedCards.Helpers
             for (var i = 0; i < values.Count; i++)
             {
                 values[i] /= divisor;
+            }
+        }
+
+        private static bool[] GetBitActivityBoolArray(IBitVector bitVector)
+        {
+            var bitActivityBoolArray = new bool[bitVector.Count];
+
+            FillBitActivityBoolArray(bitVector, bitActivityBoolArray);
+
+            return bitActivityBoolArray;
+        }
+
+        private static void FillBitActivityBoolArray(IBitVector bitVector, bool[] bitActivityBoolArray)
+        {
+            for (uint bitIndex = 0; bitIndex < bitVector.Count; bitIndex++)
+            {
+                bitActivityBoolArray[bitIndex] = bitVector.IsActive(bitIndex);
             }
         }
     }
