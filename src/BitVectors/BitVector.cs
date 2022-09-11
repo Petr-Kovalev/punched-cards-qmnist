@@ -9,12 +9,15 @@ namespace PunchedCards.BitVectors
         private const int NumberOfValuesThreshold = 32;
 
         private readonly uint[] _activeBitIndicesSorted;
+        private readonly int _hashCode;
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
             _activeBitIndicesSorted = activeBitIndices.Distinct().ToArray();
             Array.Sort(_activeBitIndicesSorted);
             Count = count;
+
+            _hashCode = CalculateHashCode();
         }
 
         public uint Count { get; }
@@ -31,6 +34,11 @@ namespace PunchedCards.BitVectors
         }
 
         public override int GetHashCode()
+        {
+            return _hashCode;
+        }
+
+        private int CalculateHashCode()
         {
             var hashCode = 17;
 
