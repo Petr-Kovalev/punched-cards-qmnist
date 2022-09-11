@@ -26,7 +26,8 @@ namespace PunchedCards.Helpers
                     var topMatchingScoresPerLabel = CalculateMatchingScoresPerLabel(topMatchingScoresPerKey, bitVectorFactory);
 
                     var topLabel = topMatchingScoresPerLabel.MaxBy(p => p.Value).Key;
-                    if (topLabel.Equals(dataItem.Item2))
+                    if (topLabel.GetHashCode() == dataItem.Item2.GetHashCode() &&
+                        topLabel.Equals(dataItem.Item2))
                     {
                         Interlocked.Increment(ref counters[topLabel][0]);
                     }
