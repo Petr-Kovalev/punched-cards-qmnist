@@ -41,13 +41,18 @@ namespace PunchedCards.Helpers
             return CalculateMatchingScores(GetBitActivityBoolArray(bitVector));
         }
 
-        public void Finetune(IBitVector bitVector, IBitVector label)
+        public bool Finetune(IBitVector bitVector, IBitVector label)
         {
             var bitActivityBoolArray = GetBitActivityBoolArray(bitVector);
             var matchingScores = CalculateMatchingScores(bitActivityBoolArray);
             var rightLabelMatchingScore = matchingScores[label];
+
+            bool anyWrongLabel = false;
+
             foreach (var wrongLabel in _labels.Where(l => matchingScores[l] > rightLabelMatchingScore))
             {
+                anyWrongLabel = true;
+
                 foreach (var wrongLabelEdges in _maxSpanningTreesEdges[wrongLabel])
                 {
                     foreach (var commonEdge in wrongLabelEdges.Keys
@@ -64,6 +69,8 @@ namespace PunchedCards.Helpers
                     }
                 }
             }
+
+            return anyWrongLabel;
         }
 
         private IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(bool[] bitActivityBoolArray)
