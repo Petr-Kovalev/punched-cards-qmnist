@@ -15,7 +15,7 @@ namespace PunchedCards
             var trainingData = DataHelper.ReadTrainingData(BitVectorFactory).ToList();
             var testData = DataHelper.ReadTestData(BitVectorFactory).ToList();
 
-            var punchedCardBitLengths = new uint[] {32, 64, 128, 256};
+            var punchedCardBitLengths = new uint[] {8, 16, 32, 64, 128, 256};
 
             foreach (var punchedCardBitLength in punchedCardBitLengths)
             {
@@ -24,7 +24,7 @@ namespace PunchedCards
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
                 var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
 
-                Finetune(trainingData, puncher, expertsPerKey, 500);
+                FineTune(trainingData, puncher, expertsPerKey, 500);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
@@ -46,39 +46,49 @@ namespace PunchedCards
             Console.ReadLine();
         }
 
-        private static void Finetune(
-            List<Tuple<IBitVector, IBitVector>> trainingData,
+        private static void FineTune(
+            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IReadOnlyDictionary<string, IExpert> expertsPerKey,
-            int finetuneIterationsCount)
+            uint maxFineTuneIterationsCount)
         {
-            var correctRecognitionCounters = new List<uint[]>();
-            expertsPerKey.AsParallel().ForAll(expertPerKey =>
-            {
-                var expertTrainingData = trainingData
-                    .Select(trainingDataItem => Tuple.Create(
-                        puncher.Punch(expertPerKey.Key, trainingDataItem.Item1).Input,
-                        trainingDataItem.Item2))
-                    .ToList();
+            Console.WriteLine();
+            Console.Write($"Average single-shot correct recognitions on fine-tune iteration: ");
 
-                var correctRecognitionsPerFinetuneIteration = new uint[finetuneIterationsCount];
-                correctRecognitionCounters.Add(correctRecognitionsPerFinetuneIteration);
-                for (int finetuneIterationIndex = 0; finetuneIterationIndex < finetuneIterationsCount; finetuneIterationIndex++)
+            double oldAverage;
+            double newAverage = double.MinValue;
+
+            uint fineTuneIterationIndex = 0;
+            do
+            {
+                oldAverage = newAverage;
+
+                var correctRecognitionCounts = new List<int>();
+                expertsPerKey.AsParallel().ForAll(expertPerKey =>
                 {
-                    uint correctRecognitionCounter = 0;
-                    foreach (var expertTrainingDataItem in expertTrainingData)
+                    int correctRecognitionCounter = 0;
+                    foreach (var trainingDataItem in trainingData)
                     {
-                        if (!expertPerKey.Value.Finetune(expertTrainingDataItem.Item1, expertTrainingDataItem.Item2))
+                        if (!expertPerKey.Value.FineTune(puncher.Punch(expertPerKey.Key, trainingDataItem.Item1).Input, trainingDataItem.Item2))
                         {
                             correctRecognitionCounter++;
                         }
                     }
-                    correctRecognitionsPerFinetuneIteration[finetuneIterationIndex] = correctRecognitionCounter;
+                    correctRecognitionCounts.Add(correctRecognitionCounter);
+                });
+
+                newAverage = correctRecognitionCounts.Average();
+
+                if (fineTuneIterationIndex != 0)
+                {
+                    Console.Write(", ");
                 }
-            });
+                Console.Write((uint)newAverage);
+
+                fineTuneIterationIndex++;
+            } while (newAverage > oldAverage && fineTuneIterationIndex < maxFineTuneIterationsCount);
 
             Console.WriteLine();
-            Console.WriteLine($"Average correct recognitions on {finetuneIterationsCount} finetune iterations: {string.Join(", ", Enumerable.Range(0, finetuneIterationsCount).Select(finetuneIterationIndex => (uint)correctRecognitionCounters.Average(c => c[finetuneIterationIndex])))}");
         }
 
         private static void WriteTrainingAndTestResults(

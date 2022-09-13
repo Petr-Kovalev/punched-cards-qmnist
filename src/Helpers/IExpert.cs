@@ -7,6 +7,6 @@ namespace PunchedCards.Helpers
     {
         public IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(IBitVector bitVector);
 
-        public bool Finetune(IBitVector bitVector, IBitVector label);
+        public bool FineTune(IBitVector bitVector, IBitVector label);
     }
 }

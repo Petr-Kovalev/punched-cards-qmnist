@@ -41,7 +41,7 @@ namespace PunchedCards.Helpers
             return CalculateMatchingScores(GetBitActivityBoolArray(bitVector));
         }
 
-        public bool Finetune(IBitVector bitVector, IBitVector label)
+        public bool FineTune(IBitVector bitVector, IBitVector label)
         {
             var bitActivityBoolArray = GetBitActivityBoolArray(bitVector);
             var matchingScores = CalculateMatchingScores(bitActivityBoolArray);
