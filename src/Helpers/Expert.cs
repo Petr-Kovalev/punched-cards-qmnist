@@ -23,7 +23,7 @@ namespace PunchedCards.Helpers
             _maxSpanningTreesEdges = trainingData.ToDictionary(
                 trainingItem => trainingItem.Key,
                 trainingItem => (IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
-                    .Select(edge => edge.ToDictionary(
+                    .Select(edges => edges.ToDictionary(
                                     t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
                                     t => (int)t.Item4))
                     .ToArray());
