@@ -27,7 +27,7 @@ namespace PunchedCards.Helpers
                                     t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
                                     t => (int)t.Item4))
                     .ToArray());
-            _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(edges => edges.Key, edges => (uint)edges.Value.Sum(edge => edge.Values.Sum()));
+            _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(edges => edges.Key, edges => (uint)edges.Value.SelectMany(edges => edges.Values).Sum());
             _labels = _maxSpanningTreesEdges.Keys.ToArray();
         }
 
