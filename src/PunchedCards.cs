@@ -24,6 +24,8 @@ namespace PunchedCards
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
                 var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
 
+                FineTune(trainingData, puncher, expertsPerKey, 500);
+
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
                 WriteTrainingAndTestResults(trainingData, testData, expertsPerKey, puncher, 1);
@@ -42,6 +44,51 @@ namespace PunchedCards
 
             Console.WriteLine("Press \"Enter\" to exit the program...");
             Console.ReadLine();
+        }
+
+        private static void FineTune(
+            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
+            IPuncher<string, IBitVector, IBitVector> puncher,
+            IReadOnlyDictionary<string, IExpert> expertsPerKey,
+            uint maxFineTuneIterationsCount)
+        {
+            Console.WriteLine();
+            Console.Write($"Average single-shot correct recognitions on fine-tune iteration: ");
+
+            double oldAverage;
+            double newAverage = double.MinValue;
+
+            uint fineTuneIterationIndex = 0;
+            do
+            {
+                oldAverage = newAverage;
+
+                var correctRecognitionCounts = new List<int>();
+                expertsPerKey.AsParallel().ForAll(expertPerKey =>
+                {
+                    int correctRecognitionCounter = 0;
+                    foreach (var trainingDataItem in trainingData)
+                    {
+                        if (!expertPerKey.Value.FineTune(puncher.Punch(expertPerKey.Key, trainingDataItem.Item1).Input, trainingDataItem.Item2))
+                        {
+                            correctRecognitionCounter++;
+                        }
+                    }
+                    correctRecognitionCounts.Add(correctRecognitionCounter);
+                });
+
+                newAverage = correctRecognitionCounts.Average();
+
+                if (fineTuneIterationIndex != 0)
+                {
+                    Console.Write(", ");
+                }
+                Console.Write((uint)newAverage);
+
+                fineTuneIterationIndex++;
+            } while (newAverage > oldAverage && fineTuneIterationIndex < maxFineTuneIterationsCount);
+
+            Console.WriteLine();
         }
 
         private static void WriteTrainingAndTestResults(

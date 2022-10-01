@@ -6,7 +6,10 @@ namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
+        private const int NumberOfValuesThreshold = 32;
+
         private readonly uint[] _activeBitIndicesSorted;
+        private int _hashCode;
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
@@ -17,7 +20,9 @@ namespace PunchedCards.BitVectors
 
         public uint Count { get; }
 
-        public bool IsActive(uint bitIndex) => Array.BinarySearch(_activeBitIndicesSorted, bitIndex) >= 0;
+        public bool IsActive(uint bitIndex) => (_activeBitIndicesSorted.Length <= NumberOfValuesThreshold ?
+            Array.IndexOf(_activeBitIndicesSorted, bitIndex) :
+            Array.BinarySearch(_activeBitIndicesSorted, bitIndex)) >= 0;
 
         public override bool Equals(object obj)
         {
@@ -27,6 +32,16 @@ namespace PunchedCards.BitVectors
         }
 
         public override int GetHashCode()
+        {
+            if (_hashCode == 0)
+            {
+                _hashCode = CalculateHashCode();
+            }
+
+            return _hashCode;
+        }
+
+        private int CalculateHashCode()
         {
             var hashCode = 17;
 

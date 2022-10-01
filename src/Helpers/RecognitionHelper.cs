@@ -8,14 +8,14 @@ namespace PunchedCards.Helpers
 {
     internal static class RecognitionHelper
     {
-        internal static IEnumerable<KeyValuePair<IBitVector, int>> CountCorrectRecognitions(
+        internal static IEnumerable<KeyValuePair<IBitVector, uint>> CountCorrectRecognitions(
             IEnumerable<Tuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
             IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
-            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new int[1]);
+            var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new uint[1]);
 
             data
                 .AsParallel()
@@ -26,7 +26,8 @@ namespace PunchedCards.Helpers
                     var topMatchingScoresPerLabel = CalculateMatchingScoresPerLabel(topMatchingScoresPerKey, bitVectorFactory);
 
                     var topLabel = topMatchingScoresPerLabel.MaxBy(p => p.Value).Key;
-                    if (topLabel.Equals(dataItem.Item2))
+                    if (topLabel.GetHashCode() == dataItem.Item2.GetHashCode() &&
+                        topLabel.Equals(dataItem.Item2))
                     {
                         Interlocked.Increment(ref counters[topLabel][0]);
                     }
