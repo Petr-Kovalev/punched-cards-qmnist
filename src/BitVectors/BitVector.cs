@@ -1,24 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace PunchedCards.BitVectors
 {
+    [DataContract]
     internal sealed class BitVector : IBitVector
     {
         private const int NumberOfValuesThreshold = 32;
 
+        [DataMember(Name = "Count")]
+        private readonly uint _count;
+
+        [DataMember(Name = "ActiveBitIndicesSorted")]
         private readonly uint[] _activeBitIndicesSorted;
+
         private int _hashCode;
+
+        private BitVector()
+        {
+        }
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
             _activeBitIndicesSorted = activeBitIndices.Distinct().ToArray();
             Array.Sort(_activeBitIndicesSorted);
-            Count = count;
+            _count = count;
         }
 
-        public uint Count { get; }
+        public uint Count => _count;
 
         public bool IsActive(uint bitIndex) => (_activeBitIndicesSorted.Length <= NumberOfValuesThreshold ?
             Array.IndexOf(_activeBitIndicesSorted, bitIndex) :
@@ -35,27 +46,15 @@ namespace PunchedCards.BitVectors
         {
             if (_hashCode == 0)
             {
-                _hashCode = CalculateHashCode();
+                var hashCode = new HashCode();
+                foreach (var activeBitIndex in _activeBitIndicesSorted)
+                {
+                    hashCode.Add(activeBitIndex);
+                }
+                _hashCode = hashCode.ToHashCode();
             }
 
             return _hashCode;
-        }
-
-        private int CalculateHashCode()
-        {
-            var hashCode = 17;
-
-            unchecked
-            {
-                hashCode = hashCode * 23 + Count.GetHashCode();
-
-                foreach (var activeBitIndex in _activeBitIndicesSorted)
-                {
-                    hashCode = hashCode * 23 + activeBitIndex.GetHashCode();
-                }
-            }
-
-            return hashCode;
         }
     }
 }
