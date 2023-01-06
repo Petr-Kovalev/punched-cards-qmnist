@@ -47,7 +47,7 @@ namespace PunchedCards.BitVectors
         {
             return obj is BitVector other &&
                    Count.Equals(other.Count) &&
-                   _activeBitIndicesSorted.SequenceEqual(other._activeBitIndicesSorted);
+                   ActiveBitIndicesSorted.SequenceEqual(other.ActiveBitIndicesSorted);
         }
 
         public override int GetHashCode()
