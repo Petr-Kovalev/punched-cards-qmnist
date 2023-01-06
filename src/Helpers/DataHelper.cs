@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers.QMNIST;
@@ -10,14 +11,48 @@ namespace PunchedCards.Helpers
     {
         private const int LabelCount = 10;
 
-        internal static IEnumerable<Tuple<IBitVector, IBitVector>> ReadTrainingData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> ReadTrainingData(IBitVectorFactory bitVectorFactory)
         {
-            return ReaData(QmnistReader.ReadTrainingData, bitVectorFactory);
+            const string fileName = "trainingData.json";
+
+            if (!File.Exists(fileName))
+            {
+                var trainingData = ReaData(QmnistReader.ReadTrainingData, bitVectorFactory).ToList();
+                using (var stream = File.Create(fileName))
+                {
+                    JsonSerializer.Serialize(trainingData, stream);
+                }
+                return trainingData;
+            }
+            else
+            {
+                using (var stream = File.OpenRead(fileName))
+                {
+                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
+                }
+            }
         }
 
-        internal static IEnumerable<Tuple<IBitVector, IBitVector>> ReadTestData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> ReadTestData(IBitVectorFactory bitVectorFactory)
         {
-            return ReaData(QmnistReader.ReadTestData, bitVectorFactory);
+            const string fileName = "testData.json";
+
+            if (!File.Exists(fileName))
+            {
+                var testData = ReaData(QmnistReader.ReadTestData, bitVectorFactory).ToList();
+                using (var stream = File.Create(fileName))
+                {
+                    JsonSerializer.Serialize(testData, stream);
+                }
+                return testData;
+            }
+            else
+            {
+                using (var stream = File.OpenRead(fileName))
+                {
+                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
+                }
+            }
         }
 
         internal static IEnumerable<IBitVector> GetLabels(IBitVectorFactory bitVectorFactory)
