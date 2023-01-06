@@ -11,48 +11,14 @@ namespace PunchedCards.Helpers
     {
         private const int LabelCount = 10;
 
-        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> ReadTrainingData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTrainingData(IBitVectorFactory bitVectorFactory)
         {
-            const string fileName = "trainingData.json";
-
-            if (!File.Exists(fileName))
-            {
-                var trainingData = ReaData(QmnistReader.ReadTrainingData, bitVectorFactory).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(trainingData, stream);
-                }
-                return trainingData;
-            }
-            else
-            {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
-                }
-            }
+            return LoadData("TrainingData.json", QmnistReader.ReadTrainingData, bitVectorFactory);
         }
 
-        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> ReadTestData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTestData(IBitVectorFactory bitVectorFactory)
         {
-            const string fileName = "testData.json";
-
-            if (!File.Exists(fileName))
-            {
-                var testData = ReaData(QmnistReader.ReadTestData, bitVectorFactory).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(testData, stream);
-                }
-                return testData;
-            }
-            else
-            {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
-                }
-            }
+            return LoadData("TestData.json", QmnistReader.ReadTestData, bitVectorFactory);
         }
 
         internal static IEnumerable<IBitVector> GetLabels(IBitVectorFactory bitVectorFactory)
@@ -60,7 +26,27 @@ namespace PunchedCards.Helpers
             return Enumerable.Range(0, LabelCount).Select(labelIndex => GetLabelBitVector((byte) labelIndex, bitVectorFactory));
         }
 
-        private static IEnumerable<Tuple<IBitVector, IBitVector>> ReaData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
+        private static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadData(string fileName, Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
+        {
+            if (File.Exists(fileName))
+            {
+                using (var stream = File.OpenRead(fileName))
+                {
+                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
+                }
+            }
+            else
+            {
+                var data = ReadData(readImagesFunction, bitVectorFactory).ToList();
+                using (var stream = File.Create(fileName))
+                {
+                    JsonSerializer.Serialize(data, stream);
+                }
+                return data;
+            }
+        }
+
+        private static IEnumerable<Tuple<IBitVector, IBitVector>> ReadData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
         {
             return readImagesFunction()
                 .Select(image => Tuple.Create(
