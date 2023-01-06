@@ -1,13 +1,13 @@
 ﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Runtime;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
-	internal sealed class JsonInterfaceToTypeConverter : JsonConverter
+	internal sealed class JsonInterfaceToTypeConverter : JsonConverter<object>
     {
         private static readonly IDictionary<string, Type> Mapping = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
@@ -22,15 +22,14 @@ namespace PunchedCards.Helpers
             return Mapping.TryGetValue(objectType.Name, out _);
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
-            Newtonsoft.Json.JsonSerializer serializer)
+        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return Mapping.TryGetValue(objectType.Name, out var type) ? serializer.Deserialize(reader, type) : null;
+            return Mapping.TryGetValue(typeToConvert.Name, out var type) ? (IBitVector)System.Text.Json.JsonSerializer.Deserialize(ref reader, type, options) : null;
         }
 
-        public override void WriteJson(JsonWriter writer, object value, Newtonsoft.Json.JsonSerializer serializer)
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
-            serializer.Serialize(writer, value);
+            System.Text.Json.JsonSerializer.Serialize(writer, value, options);
         }
 
         private static void Map<TI, T>() where T : class, TI

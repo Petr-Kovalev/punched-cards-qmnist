@@ -2,23 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace PunchedCards.BitVectors
 {
-    [DataContract]
     internal sealed class BitVector : IBitVector
     {
         private const int NumberOfValuesThreshold = 32;
 
-        [DataMember(Name = "Count")]
-        private readonly uint _count;
-
-        [DataMember(Name = "ActiveBitIndicesSorted")]
-        private readonly uint[] _activeBitIndicesSorted;
+        private uint[] _activeBitIndicesSorted;
 
         private int _hashCode;
 
-        private BitVector()
+        public BitVector()
         {
         }
 
@@ -26,10 +22,22 @@ namespace PunchedCards.BitVectors
         {
             _activeBitIndicesSorted = activeBitIndices.Distinct().ToArray();
             Array.Sort(_activeBitIndicesSorted);
-            _count = count;
+            Count = count;
         }
 
-        public uint Count => _count;
+        [JsonInclude]
+        public uint Count { get; private set; }
+
+        [JsonInclude]
+        public IEnumerable<uint> ActiveBitIndicesSorted
+        {
+            get => _activeBitIndicesSorted;
+
+            private set
+            {
+                _activeBitIndicesSorted = value.ToArray();
+            }
+        }
 
         public bool IsActive(uint bitIndex) => (_activeBitIndicesSorted.Length <= NumberOfValuesThreshold ?
             Array.IndexOf(_activeBitIndicesSorted, bitIndex) :

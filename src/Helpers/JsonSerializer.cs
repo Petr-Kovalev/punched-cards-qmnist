@@ -1,53 +1,29 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace PunchedCards.Helpers
 {
-	internal sealed class JsonSerializer
+	internal static class JsonSerializer
 	{
-        private const int DefaultBufferSize = 80 * 1024; // 80K is the value from modern stream extension method CopyTo implementation
-
-        private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
-
-        private readonly Newtonsoft.Json.JsonSerializer _jsonSerializer;
-
-        private JsonSerializer()
-		{
-            _jsonSerializer = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented,
-                Converters =
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Converters =
                 {
                     new JsonInterfaceToTypeConverter()
                 }
-            });
+        };
+
+        internal static void Serialize(object value, Stream stream)
+        {
+            System.Text.Json.JsonSerializer.Serialize(stream, value, JsonSerializerOptions);
         }
 
-		internal static JsonSerializer Instance { get; } = new JsonSerializer();
-
-        internal void Serialize(object value, StreamWriter streamWriter)
+        internal static T Deserialize<T>(Stream stream)
         {
-            using (var jsonTextWriter = new JsonTextWriter(streamWriter)
-            {
-                CloseOutput = false,
-                AutoCompleteOnClose = false
-            })
-            {
-                _jsonSerializer.Serialize(jsonTextWriter, value);
-            }
-        }
-
-        internal T Deserialize<T>(StreamReader streamReader)
-        {
-            using (var jsonTextReader = new JsonTextReader(streamReader)
-            {
-                CloseInput = false
-            })
-            {
-                return _jsonSerializer.Deserialize<T>(jsonTextReader);
-            }
+            return System.Text.Json.JsonSerializer.Deserialize<T>(stream, JsonSerializerOptions);
         }
     }
 }
