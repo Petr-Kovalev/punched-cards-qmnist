@@ -13,8 +13,8 @@ namespace PunchedCards
 
         private static void Main()
         {
-            var trainingData = LoadTrainingData();
-            var testData = LoadTestData();
+            var trainingData = DataHelper.LoadTrainingData(BitVectorFactory);
+            var testData = DataHelper.LoadTestData(BitVectorFactory);
 
             var punchedCardBitLengths = new uint[] {8, 16, 32, 64, 128, 256};
 
