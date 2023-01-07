@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
-	internal sealed class JsonInterfaceToTypeConverter : JsonConverter<object>
+    internal sealed class JsonInterfaceToTypeConverter : JsonConverter<object>
     {
         private static readonly IDictionary<string, Type> Mapping = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
