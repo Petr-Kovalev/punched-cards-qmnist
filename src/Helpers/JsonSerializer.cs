@@ -1,11 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Text;
+﻿using System.IO;
 using System.Text.Json;
 
 namespace PunchedCards.Helpers
 {
-	internal static class JsonSerializer
+    internal static class JsonSerializer
 	{
         private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
@@ -27,4 +25,3 @@ namespace PunchedCards.Helpers
         }
     }
 }
-

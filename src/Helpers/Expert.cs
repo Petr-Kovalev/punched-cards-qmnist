@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -14,26 +15,63 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private readonly IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
-        private readonly IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
-        private readonly IList<IBitVector> _labels;
+        private IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
+        private IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
+        private IList<IBitVector> _labels;
+
+        public Expert()
+        {
+        }
 
         private Expert(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
-            _maxSpanningTreesEdges = trainingData.ToDictionary(
-                trainingItem => trainingItem.Key,
-                trainingItem => (IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>)GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
-                    .Select(edges => edges.ToDictionary(
-                                    t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
-                                    t => (int)t.Item4))
-                    .ToArray());
-            _maxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(edges => edges.Key, edges => (uint)edges.Value.SelectMany(edges => edges.Values).Sum());
-            _labels = _maxSpanningTreesEdges.Keys.ToArray();
+            MaxSpanningTreesEdges = trainingData.Select(trainingItem => new KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, uint>>>>(
+                trainingItem.Key,
+                GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
+                .Select(edges => edges.Select(t => Tuple.Create(t.Item1, t.Item2, t.Item3, t.Item4)).ToList()).ToList()));
+            MaxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(
+                edges => edges.Key,
+                edges => (uint)edges.Value.SelectMany(d => d.Values).Sum());
         }
 
         internal static IExpert Create(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
             return new Expert(trainingData);
+        }
+
+        [JsonInclude]
+        public IEnumerable<KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, uint>>>>> MaxSpanningTreesEdges
+        {
+            get => _maxSpanningTreesEdges.Select(p =>
+                new KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, uint>>>>(
+                    p.Key,
+                    p.Value.Select(e => e.Select(p => Tuple.Create(p.Key.Item1, p.Key.Item2, p.Key.Item3, (uint)p.Value)))));
+
+            private set
+            {
+                _maxSpanningTreesEdges = value
+                    .ToDictionary(
+                        t => t.Key,
+                        t => (IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>)
+                             t.Value.Select(edges => edges.ToDictionary(
+                             t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
+                             t => (int)t.Item4))
+                             .ToList());
+                _labels = _maxSpanningTreesEdges.Keys.ToArray();
+            }
+        }
+
+        [JsonInclude]
+        public IEnumerable<KeyValuePair<IBitVector, uint>> MaxSpanningTreesWeightSums
+        {
+            get => _maxSpanningTreesWeightSums;
+
+            private set
+            {
+                _maxSpanningTreesWeightSums =
+                    value as IReadOnlyDictionary<IBitVector, uint> ??
+                    value.ToDictionary(p => p.Key, p => p.Value);
+            }
         }
 
         public IReadOnlyDictionary<IBitVector, double> CalculateMatchingScores(IBitVector bitVector)
