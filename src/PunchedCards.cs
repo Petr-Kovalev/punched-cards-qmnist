@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
@@ -45,50 +44,6 @@ namespace PunchedCards
 
             Console.WriteLine("Press \"Enter\" to exit the program...");
             Console.ReadLine();
-        }
-
-        private static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTrainingData()
-        {
-            const string fileName = "trainingData.json";
-
-            if (!File.Exists(fileName))
-            {
-                var trainingData = DataHelper.ReadTrainingData(BitVectorFactory).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(trainingData, stream);
-                }
-                return trainingData;
-            }
-            else
-            {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
-                }
-            }
-        }
-
-        private static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTestData()
-        {
-            const string fileName = "testData.json";
-
-            if (!File.Exists(fileName))
-            {
-                var testData = DataHelper.ReadTestData(BitVectorFactory).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(testData, stream);
-                }
-                return testData;
-            }
-            else
-            {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
-                }
-            }
         }
 
         private static void FineTune(
