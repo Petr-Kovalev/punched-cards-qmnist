@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PunchedCards
 {
@@ -22,9 +24,7 @@ namespace PunchedCards
                 Console.WriteLine("Punched card bit length: " + punchedCardBitLength);
 
                 IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
-                var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
-
-                FineTune(trainingData, puncher, expertsPerKey, 500);
+                var expertsPerKey = LoadExpertsPerKey(punchedCardBitLength, trainingData, puncher);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
@@ -142,6 +142,34 @@ namespace PunchedCards
                         (IReadOnlyCollection<IBitVector>) punchedCardByLabelGrouping
                             .Select(punchedCardAndLabel => punchedCardAndLabel.Item1.Input)
                         .ToList());
+        }
+
+        private static IReadOnlyDictionary<string, IExpert> LoadExpertsPerKey(uint punchedCardBitLength, IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData, IPuncher<string, IBitVector, IBitVector> puncher)
+        {
+            var fileName = $"Experts{punchedCardBitLength}.json";
+
+            if (File.Exists(fileName))
+            {
+                // Initialize puncher's map
+                puncher.GetKeys(trainingData[0].Item1.Count);
+
+                using (var stream = File.OpenRead(fileName))
+                {
+                    return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
+                }
+            }
+            else
+            {
+                var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
+                FineTune(trainingData, puncher, expertsPerKey, 500);
+
+                using (var stream = File.Create(fileName))
+                {
+                    JsonSerializer.Serialize(expertsPerKey, stream);
+                }
+
+                return expertsPerKey;
+            }
         }
     }
 }
