@@ -8,7 +8,7 @@ namespace PunchedCards.Helpers
 {
     internal sealed class JsonInterfaceToTypeConverter : JsonConverter<object>
     {
-        private static readonly IDictionary<string, Type> Mapping = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        private static readonly IDictionary<Type, Type> Mapping = new Dictionary<Type, Type>();
 
         static JsonInterfaceToTypeConverter()
         {
@@ -18,12 +18,12 @@ namespace PunchedCards.Helpers
 
         public override bool CanConvert(Type objectType)
         {
-            return Mapping.TryGetValue(objectType.Name, out _);
+            return Mapping.TryGetValue(objectType, out _);
         }
 
         public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return Mapping.TryGetValue(typeToConvert.Name, out var type) ? System.Text.Json.JsonSerializer.Deserialize(ref reader, type, options) : null;
+            return Mapping.TryGetValue(typeToConvert, out var type) ? System.Text.Json.JsonSerializer.Deserialize(ref reader, type, options) : null;
         }
 
         public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
@@ -33,7 +33,7 @@ namespace PunchedCards.Helpers
 
         private static void Map<TI, T>() where T : class, TI
         {
-            Mapping.Add(typeof(TI).Name, typeof(T));
+            Mapping.Add(typeof(TI), typeof(T));
         }
     }
 }
