@@ -15,7 +15,7 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
+        private IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<Tuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
         private IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
         private IList<IBitVector> _labels;
 
@@ -25,10 +25,12 @@ namespace PunchedCards.Helpers
 
         private Expert(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
-            MaxSpanningTreesEdges = trainingData.Select(trainingItem => new KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, int>>>>(
+            MaxSpanningTreesEdges = trainingData.Select(trainingItem => new KeyValuePair<IBitVector, IEnumerable<IEnumerable<KeyValuePair<Tuple<uint, uint, byte>, int>>>>(
                 trainingItem.Key,
                 GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
-                .Select(edges => edges.Select(t => Tuple.Create(t.Item1, t.Item2, t.Item3, (int)t.Item4)))));
+                .Select(edges => edges.ToDictionary(
+                    edge => Tuple.Create(edge.Item1, edge.Item2, edge.Item3),
+                    edge => (int)edge.Item4).ToList())));
             MaxSpanningTreesWeightSums = _maxSpanningTreesEdges.ToDictionary(
                 edges => edges.Key,
                 edges => (uint)edges.Value.SelectMany(d => d.Values).Sum());
@@ -40,23 +42,24 @@ namespace PunchedCards.Helpers
         }
 
         [JsonInclude]
-        public IEnumerable<KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, int>>>>> MaxSpanningTreesEdges
+        public IEnumerable<KeyValuePair<IBitVector, IEnumerable<IEnumerable<KeyValuePair<Tuple<uint, uint, byte>, int>>>>> MaxSpanningTreesEdges
         {
-            get => _maxSpanningTreesEdges.Select(p =>
-                new KeyValuePair<IBitVector, IEnumerable<IEnumerable<Tuple<uint, uint, byte, int>>>>(
-                    p.Key,
-                    p.Value.Select(e => e.Select(p => Tuple.Create(p.Key.Item1, p.Key.Item2, p.Key.Item3, p.Value)))));
+            get
+            {
+                var keyValuePairs = (IEnumerable<KeyValuePair<IBitVector, IEnumerable<IDictionary<Tuple<uint, uint, byte>, int>>>>)_maxSpanningTreesEdges;
+                return keyValuePairs.Select(p => KeyValuePair.Create(p.Key, p.Value.Cast<IEnumerable<KeyValuePair<Tuple<uint, uint, byte>, int>>>()));
+            }
 
             private set
             {
-                _maxSpanningTreesEdges = value
-                    .ToDictionary(
-                        t => t.Key,
-                        t => (IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>)
-                             t.Value.Select(edges => edges.ToDictionary(
-                             t => ValueTuple.Create(t.Item1, t.Item2, t.Item3),
-                             t => t.Item4))
-                             .ToList());
+                _maxSpanningTreesEdges =
+                    value as IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<Tuple<uint, uint, byte>, int>>> ??
+                    value.ToDictionary(p => p.Key,
+                                       p => (IEnumerable<IDictionary<Tuple<uint, uint, byte>, int>>)
+                                            p.Value.Select(edges => edges.ToDictionary(
+                                                 edge => edge.Key,
+                                                 edge => edge.Value))
+                                            .ToList());
                 _labels = _maxSpanningTreesEdges.Keys.ToArray();
             }
         }
