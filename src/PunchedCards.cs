@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PunchedCards
 {
