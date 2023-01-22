@@ -44,9 +44,7 @@ namespace PunchedCards.BitVectors
 
         public override bool Equals(object obj)
         {
-            return obj is BitVector other &&
-                   Count.Equals(other.Count) &&
-                   ActiveBitIndicesSorted.SequenceEqual(other.ActiveBitIndicesSorted);
+            return Equals(obj as IBitVector);
         }
 
         public override int GetHashCode()
