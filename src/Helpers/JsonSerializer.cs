@@ -14,7 +14,7 @@ namespace PunchedCards.Helpers
                 }
         };
 
-        internal static void Serialize(object value, Stream stream)
+        internal static void Serialize<T>(T value, Stream stream)
         {
             System.Text.Json.JsonSerializer.Serialize(stream, value, JsonSerializerOptions);
         }

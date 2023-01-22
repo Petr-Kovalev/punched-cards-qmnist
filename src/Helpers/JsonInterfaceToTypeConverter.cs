@@ -16,9 +16,9 @@ namespace PunchedCards.Helpers
             Map<IExpert, Expert>();
         }
 
-        public override bool CanConvert(Type objectType)
+        public override bool CanConvert(Type typeToConvert)
         {
-            return Mapping.TryGetValue(objectType, out _);
+            return Mapping.TryGetValue(typeToConvert, out _);
         }
 
         public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
