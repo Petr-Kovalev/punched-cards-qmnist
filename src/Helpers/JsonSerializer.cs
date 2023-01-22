@@ -8,6 +8,7 @@ namespace PunchedCards.Helpers
         private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
         {
             WriteIndented = true,
+            IncludeFields = true,
             Converters =
                 {
                     new JsonInterfaceToTypeConverter()
