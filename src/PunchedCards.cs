@@ -46,7 +46,7 @@ namespace PunchedCards
         }
 
         private static void FineTune(
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> trainingData,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IReadOnlyDictionary<string, IExpert> expertsPerKey,
             uint maxFineTuneIterationsCount)
@@ -91,8 +91,8 @@ namespace PunchedCards
         }
 
         private static void WriteTrainingAndTestResults(
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> testData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> trainingData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> testData,
             IReadOnlyDictionary<string, IExpert> expertsPerKey,
             IPuncher<string, IBitVector, IBitVector> puncher,
             int? topPunchedCardsCount = null)
@@ -115,7 +115,7 @@ namespace PunchedCards
         private static IReadOnlyDictionary<string,
                 IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
             GetPunchedCardsPerKeyPerLabel(
-                IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData,
+                IReadOnlyList<ValueTuple<IBitVector, IBitVector>> trainingData,
                 IPuncher<string, IBitVector, IBitVector> puncher)
         {
             var count = trainingData[0].Item1.Count;
@@ -123,15 +123,15 @@ namespace PunchedCards
             return puncher
                 .GetKeys(count)
                 .AsParallel()
-                .Select(key => Tuple.Create(
+                .Select(key => ValueTuple.Create(
                             key,
                             GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
-                                    Tuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2)))))
+                                    ValueTuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2)))))
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
         private static IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>> GetPunchedCardsPerLabel(
-            IEnumerable<Tuple<IPunchedCard<string, IBitVector>, IBitVector>> punchedCardInputsByKeyGrouping)
+            IEnumerable<ValueTuple<IPunchedCard<string, IBitVector>, IBitVector>> punchedCardInputsByKeyGrouping)
         {
             return punchedCardInputsByKeyGrouping
                 .GroupBy(punchedCardAndLabel => punchedCardAndLabel.Item2)
@@ -143,7 +143,7 @@ namespace PunchedCards
                         .ToList());
         }
 
-        private static IReadOnlyDictionary<string, IExpert> LoadExpertsPerKey(uint punchedCardBitLength, IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData, IPuncher<string, IBitVector, IBitVector> puncher)
+        private static IReadOnlyDictionary<string, IExpert> LoadExpertsPerKey(uint punchedCardBitLength, IReadOnlyList<ValueTuple<IBitVector, IBitVector>> trainingData, IPuncher<string, IBitVector, IBitVector> puncher)
         {
             var fileName = $"Experts{punchedCardBitLength}.json";
 

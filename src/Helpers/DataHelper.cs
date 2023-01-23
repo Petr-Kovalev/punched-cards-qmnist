@@ -11,12 +11,12 @@ namespace PunchedCards.Helpers
     {
         private const int LabelCount = 10;
 
-        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTrainingData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTrainingData(IBitVectorFactory bitVectorFactory)
         {
             return LoadData("TrainingData.json", QmnistReader.ReadTrainingData, bitVectorFactory);
         }
 
-        internal static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadTestData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTestData(IBitVectorFactory bitVectorFactory)
         {
             return LoadData("TestData.json", QmnistReader.ReadTestData, bitVectorFactory);
         }
@@ -26,13 +26,13 @@ namespace PunchedCards.Helpers
             return Enumerable.Range(0, LabelCount).Select(labelIndex => GetLabelBitVector((byte) labelIndex, bitVectorFactory));
         }
 
-        private static IReadOnlyList<Tuple<IBitVector, IBitVector>> LoadData(string fileName, Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
+        private static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadData(string fileName, Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
         {
             if (File.Exists(fileName))
             {
                 using (var stream = File.OpenRead(fileName))
                 {
-                    return JsonSerializer.Deserialize<IReadOnlyList<Tuple<IBitVector, IBitVector>>>(stream);
+                    return JsonSerializer.Deserialize<IReadOnlyList<ValueTuple<IBitVector, IBitVector>>>(stream);
                 }
             }
             else
@@ -46,10 +46,10 @@ namespace PunchedCards.Helpers
             }
         }
 
-        private static IEnumerable<Tuple<IBitVector, IBitVector>> ReadData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
+        private static IEnumerable<ValueTuple<IBitVector, IBitVector>> ReadData(Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
         {
             return readImagesFunction()
-                .Select(image => Tuple.Create(
+                .Select(image => ValueTuple.Create(
                     GetValueBitVector(image.Data, bitVectorFactory),
                     GetLabelBitVector(image.Label, bitVectorFactory)));
         }

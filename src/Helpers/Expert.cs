@@ -25,7 +25,7 @@ namespace PunchedCards.Helpers
 
         private Expert(IEnumerable<KeyValuePair<IBitVector, IReadOnlyCollection<IBitVector>>> trainingData)
         {
-            MaxSpanningTreesEdges = trainingData.Select(trainingItem => new KeyValuePair<IBitVector, IEnumerable<IEnumerable<KeyValuePair<ValueTuple<uint, uint, byte>, int>>>>(
+            MaxSpanningTreesEdges = trainingData.Select(trainingItem => KeyValuePair.Create<IBitVector, IEnumerable<IEnumerable<KeyValuePair<ValueTuple<uint, uint, byte>, int>>>>(
                 trainingItem.Key,
                 GetMaxSpanningTreesEdges(trainingItem.Value, MaxSpanningTreesPerLabel)
                 .Select(edges => edges.ToDictionary(
