@@ -7,7 +7,7 @@ namespace PunchedCards.Helpers
 {
     internal static class DependencyInjection
     {
-        internal static ServiceProvider ServiceProvider { get; } = new ServiceCollection()
+        internal static IServiceProvider ServiceProvider { get; } = new ServiceCollection()
                     .AddSingleton<IBitVectorFactory, BitVectorFactory>()
                     .BuildServiceProvider();
     }
