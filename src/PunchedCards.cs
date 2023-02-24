@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
 
@@ -9,7 +10,7 @@ namespace PunchedCards
 {
     internal static class PunchedCards
     {
-        private static readonly IBitVectorFactory BitVectorFactory = new BitVectorFactory();
+        private static readonly IBitVectorFactory BitVectorFactory = DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>();
 
         private static void Main()
         {
