@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -12,9 +13,9 @@ namespace PunchedCards.Helpers
             IEnumerable<ValueTuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
-            IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
+            var bitVectorFactory = DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>();
             var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new uint[1]);
 
             data

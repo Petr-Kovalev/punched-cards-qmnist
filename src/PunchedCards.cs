@@ -10,12 +10,10 @@ namespace PunchedCards
 {
     internal static class PunchedCards
     {
-        private static readonly IBitVectorFactory BitVectorFactory = DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>();
-
         private static void Main()
         {
-            var trainingData = DataHelper.LoadTrainingData(BitVectorFactory);
-            var testData = DataHelper.LoadTestData(BitVectorFactory);
+            var trainingData = DataHelper.LoadTrainingData();
+            var testData = DataHelper.LoadTestData();
 
             var punchedCardBitLengths = new uint[] {8, 16, 32, 64, 128, 256};
 
@@ -23,7 +21,7 @@ namespace PunchedCards
             {
                 Console.WriteLine("Punched card bit length: " + punchedCardBitLength);
 
-                IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
+                IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength);
                 var expertsPerKey = LoadExpertsPerKey(punchedCardBitLength, trainingData, puncher);
 
                 Console.WriteLine();
@@ -99,14 +97,14 @@ namespace PunchedCards
             int? topPunchedCardsCount = null)
         {
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, expertsPerKey, topPunchedCardsCount);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(testData, puncher, expertsPerKey, topPunchedCardsCount);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +

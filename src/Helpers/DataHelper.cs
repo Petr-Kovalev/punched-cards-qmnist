@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers.QMNIST;
 
@@ -11,14 +12,14 @@ namespace PunchedCards.Helpers
     {
         private const int LabelCount = 10;
 
-        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTrainingData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTrainingData()
         {
-            return LoadData("TrainingData.json", QmnistReader.ReadTrainingData, bitVectorFactory);
+            return LoadData("TrainingData.json", QmnistReader.ReadTrainingData);
         }
 
-        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTestData(IBitVectorFactory bitVectorFactory)
+        internal static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadTestData()
         {
-            return LoadData("TestData.json", QmnistReader.ReadTestData, bitVectorFactory);
+            return LoadData("TestData.json", QmnistReader.ReadTestData);
         }
 
         internal static IEnumerable<IBitVector> GetLabels(IBitVectorFactory bitVectorFactory)
@@ -26,7 +27,7 @@ namespace PunchedCards.Helpers
             return Enumerable.Range(0, LabelCount).Select(labelIndex => GetLabelBitVector((byte) labelIndex, bitVectorFactory));
         }
 
-        private static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadData(string fileName, Func<IEnumerable<Image>> readImagesFunction, IBitVectorFactory bitVectorFactory)
+        private static IReadOnlyList<ValueTuple<IBitVector, IBitVector>> LoadData(string fileName, Func<IEnumerable<Image>> readImagesFunction)
         {
             if (File.Exists(fileName))
             {
@@ -37,7 +38,7 @@ namespace PunchedCards.Helpers
             }
             else
             {
-                var data = ReadData(readImagesFunction, bitVectorFactory).ToList();
+                var data = ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>()).ToList();
                 using (var stream = File.Create(fileName))
                 {
                     JsonSerializer.Serialize(data, stream);

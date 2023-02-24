@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
+using PunchedCards.Helpers;
 
 namespace PunchedCards
 {
@@ -15,10 +17,10 @@ namespace PunchedCards
         private uint _lastCount;
         private uint[][] _map;
 
-        internal RandomPuncher(uint bitCount, IBitVectorFactory bitVectorFactory)
+        internal RandomPuncher(uint bitCount)
         {
             _bitCount = bitCount;
-            _bitVectorFactory = bitVectorFactory;
+            _bitVectorFactory = DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>();
         }
 
         public IPunchedCard<string, IBitVector> Punch(string key, IBitVector input)
