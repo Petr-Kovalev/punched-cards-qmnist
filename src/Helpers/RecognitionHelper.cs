@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
@@ -9,12 +10,12 @@ namespace PunchedCards.Helpers
     internal static class RecognitionHelper
     {
         internal static IEnumerable<KeyValuePair<IBitVector, uint>> CountCorrectRecognitions(
-            IEnumerable<Tuple<IBitVector, IBitVector>> data,
+            IEnumerable<ValueTuple<IBitVector, IBitVector>> data,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IEnumerable<KeyValuePair<string, IExpert>> expertsPerKey,
-            IBitVectorFactory bitVectorFactory,
             int? topPunchedCardsCount)
         {
+            var bitVectorFactory = DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>();
             var counters = DataHelper.GetLabels(bitVectorFactory).ToDictionary(label => label, _ => new uint[1]);
 
             data
@@ -41,7 +42,7 @@ namespace PunchedCards.Helpers
             return trainingPunchedCardsPerKeyPerLabel
                 .AsParallel()
                 .Select(punchedCardsPerKeyPerLabel =>
-                    Tuple.Create(punchedCardsPerKeyPerLabel.Key, Expert.Create(punchedCardsPerKeyPerLabel.Value)))
+                    ValueTuple.Create(punchedCardsPerKeyPerLabel.Key, Expert.Create(punchedCardsPerKeyPerLabel.Value)))
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 

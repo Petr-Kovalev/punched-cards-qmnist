@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace PunchedCards.BitVectors
 {
@@ -8,17 +9,34 @@ namespace PunchedCards.BitVectors
     {
         private const int NumberOfValuesThreshold = 32;
 
-        private readonly uint[] _activeBitIndicesSorted;
+        private uint[] _activeBitIndicesSorted;
+
         private int _hashCode;
+
+        public BitVector()
+        {
+        }
 
         internal BitVector(IEnumerable<uint> activeBitIndices, uint count)
         {
-            _activeBitIndicesSorted = activeBitIndices.Distinct().ToArray();
-            Array.Sort(_activeBitIndicesSorted);
+            ActiveBitIndicesSorted = activeBitIndices;
             Count = count;
         }
 
-        public uint Count { get; }
+        [JsonInclude]
+        public uint Count { get; private set; }
+
+        [JsonInclude]
+        public IEnumerable<uint> ActiveBitIndicesSorted
+        {
+            get => _activeBitIndicesSorted;
+
+            private set
+            {
+                _activeBitIndicesSorted = value.Distinct().ToArray();
+                Array.Sort(_activeBitIndicesSorted);
+            }
+        }
 
         public bool IsActive(uint bitIndex) => (_activeBitIndicesSorted.Length <= NumberOfValuesThreshold ?
             Array.IndexOf(_activeBitIndicesSorted, bitIndex) :
@@ -26,36 +44,22 @@ namespace PunchedCards.BitVectors
 
         public override bool Equals(object obj)
         {
-            return obj is BitVector other &&
-                   Count.Equals(other.Count) &&
-                   _activeBitIndicesSorted.SequenceEqual(other._activeBitIndicesSorted);
+            return Equals(obj as IBitVector);
         }
 
         public override int GetHashCode()
         {
             if (_hashCode == 0)
             {
-                _hashCode = CalculateHashCode();
+                var hashCode = new HashCode();
+                foreach (var activeBitIndex in _activeBitIndicesSorted)
+                {
+                    hashCode.Add(activeBitIndex);
+                }
+                _hashCode = hashCode.ToHashCode();
             }
 
             return _hashCode;
-        }
-
-        private int CalculateHashCode()
-        {
-            var hashCode = 17;
-
-            unchecked
-            {
-                hashCode = hashCode * 23 + Count.GetHashCode();
-
-                foreach (var activeBitIndex in _activeBitIndicesSorted)
-                {
-                    hashCode = hashCode * 23 + activeBitIndex.GetHashCode();
-                }
-            }
-
-            return hashCode;
         }
     }
 }

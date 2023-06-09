@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
 
@@ -8,12 +10,10 @@ namespace PunchedCards
 {
     internal static class PunchedCards
     {
-        private static readonly IBitVectorFactory BitVectorFactory = new BitVectorFactory();
-
         private static void Main()
         {
-            var trainingData = DataHelper.ReadTrainingData(BitVectorFactory).ToList();
-            var testData = DataHelper.ReadTestData(BitVectorFactory).ToList();
+            var trainingData = DataHelper.LoadTrainingData();
+            var testData = DataHelper.LoadTestData();
 
             var punchedCardBitLengths = new uint[] {8, 16, 32, 64, 128, 256};
 
@@ -21,10 +21,8 @@ namespace PunchedCards
             {
                 Console.WriteLine("Punched card bit length: " + punchedCardBitLength);
 
-                IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength, BitVectorFactory);
-                var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
-
-                FineTune(trainingData, puncher, expertsPerKey, 500);
+                IPuncher<string, IBitVector, IBitVector> puncher = new RandomPuncher(punchedCardBitLength);
+                var expertsPerKey = LoadExpertsPerKey(punchedCardBitLength, trainingData, puncher);
 
                 Console.WriteLine();
                 Console.WriteLine("Top punched card per input:");
@@ -47,7 +45,7 @@ namespace PunchedCards
         }
 
         private static void FineTune(
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> trainingData,
             IPuncher<string, IBitVector, IBitVector> puncher,
             IReadOnlyDictionary<string, IExpert> expertsPerKey,
             uint maxFineTuneIterationsCount)
@@ -92,21 +90,21 @@ namespace PunchedCards
         }
 
         private static void WriteTrainingAndTestResults(
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> trainingData,
-            IReadOnlyCollection<Tuple<IBitVector, IBitVector>> testData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> trainingData,
+            IReadOnlyCollection<ValueTuple<IBitVector, IBitVector>> testData,
             IReadOnlyDictionary<string, IExpert> expertsPerKey,
             IPuncher<string, IBitVector, IBitVector> puncher,
             int? topPunchedCardsCount = null)
         {
             var trainingCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(trainingData, puncher, expertsPerKey, topPunchedCardsCount);
             Console.WriteLine("Training results: " +
                               trainingCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
                               " correct recognitions of " + trainingData.Count);
 
             var testCorrectRecognitionsPerLabel =
-                RecognitionHelper.CountCorrectRecognitions(testData, puncher, expertsPerKey, BitVectorFactory, topPunchedCardsCount);
+                RecognitionHelper.CountCorrectRecognitions(testData, puncher, expertsPerKey, topPunchedCardsCount);
             Console.WriteLine("Test results: " +
                               testCorrectRecognitionsPerLabel
                                   .Sum(correctRecognitionsPerLabel => correctRecognitionsPerLabel.Value) +
@@ -116,7 +114,7 @@ namespace PunchedCards
         private static IReadOnlyDictionary<string,
                 IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>>>
             GetPunchedCardsPerKeyPerLabel(
-                IReadOnlyList<Tuple<IBitVector, IBitVector>> trainingData,
+                IReadOnlyList<ValueTuple<IBitVector, IBitVector>> trainingData,
                 IPuncher<string, IBitVector, IBitVector> puncher)
         {
             var count = trainingData[0].Item1.Count;
@@ -124,15 +122,15 @@ namespace PunchedCards
             return puncher
                 .GetKeys(count)
                 .AsParallel()
-                .Select(key => Tuple.Create(
+                .Select(key => ValueTuple.Create(
                             key,
                             GetPunchedCardsPerLabel(trainingData.Select(trainingDataItem =>
-                                    Tuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2)))))
+                                    ValueTuple.Create(puncher.Punch(key, trainingDataItem.Item1), trainingDataItem.Item2)))))
                 .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
         }
 
         private static IReadOnlyDictionary<IBitVector, IReadOnlyCollection<IBitVector>> GetPunchedCardsPerLabel(
-            IEnumerable<Tuple<IPunchedCard<string, IBitVector>, IBitVector>> punchedCardInputsByKeyGrouping)
+            IEnumerable<ValueTuple<IPunchedCard<string, IBitVector>, IBitVector>> punchedCardInputsByKeyGrouping)
         {
             return punchedCardInputsByKeyGrouping
                 .GroupBy(punchedCardAndLabel => punchedCardAndLabel.Item2)
@@ -142,6 +140,34 @@ namespace PunchedCards
                         (IReadOnlyCollection<IBitVector>) punchedCardByLabelGrouping
                             .Select(punchedCardAndLabel => punchedCardAndLabel.Item1.Input)
                         .ToList());
+        }
+
+        private static IReadOnlyDictionary<string, IExpert> LoadExpertsPerKey(uint punchedCardBitLength, IReadOnlyList<ValueTuple<IBitVector, IBitVector>> trainingData, IPuncher<string, IBitVector, IBitVector> puncher)
+        {
+            var fileName = $"Experts{punchedCardBitLength}.json";
+
+            if (File.Exists(fileName))
+            {
+                // Initialize puncher's map
+                puncher.GetKeys(trainingData[0].Item1.Count);
+
+                using (var stream = File.OpenRead(fileName))
+                {
+                    return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
+                }
+            }
+            else
+            {
+                var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
+                FineTune(trainingData, puncher, expertsPerKey, 500);
+
+                using (var stream = File.Create(fileName))
+                {
+                    JsonSerializer.Serialize(expertsPerKey, stream);
+                }
+
+                return expertsPerKey;
+            }
         }
     }
 }
