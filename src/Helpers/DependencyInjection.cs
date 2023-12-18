@@ -1,7 +1,5 @@
-﻿using System;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
-using PunchedCards.Helpers;
 
 namespace PunchedCards.Helpers
 {

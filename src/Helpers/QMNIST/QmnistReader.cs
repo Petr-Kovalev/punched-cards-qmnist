@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace PunchedCards.Helpers.QMNIST
+﻿namespace PunchedCards.Helpers.QMNIST
 {
     // https://github.com/facebookresearch/qmnist
     internal static class QmnistReader

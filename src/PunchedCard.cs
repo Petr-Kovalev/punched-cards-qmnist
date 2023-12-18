@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace PunchedCards
+﻿namespace PunchedCards
 {
     internal sealed class PunchedCard<TKey, TInput> : IPunchedCard<TKey, TInput>
     {
