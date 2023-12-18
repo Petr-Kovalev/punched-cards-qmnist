@@ -49,7 +49,7 @@ namespace PunchedCards
             Console.Write($"Average single-shot correct recognitions on fine-tune iteration: ");
 
             double oldAverage;
-            double newAverage = double.MinValue;
+            var newAverage = double.MinValue;
 
             uint fineTuneIterationIndex = 0;
             do
@@ -59,7 +59,7 @@ namespace PunchedCards
                 var correctRecognitionCounts = new List<int>();
                 expertsPerKey.AsParallel().ForAll(expertPerKey =>
                 {
-                    int correctRecognitionCounter = 0;
+                    var correctRecognitionCounter = 0;
                     foreach (var trainingDataItem in trainingData)
                     {
                         if (!expertPerKey.Value.FineTune(puncher.Punch(expertPerKey.Key, trainingDataItem.Item1).Input, trainingDataItem.Item2))

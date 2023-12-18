@@ -85,7 +85,7 @@ namespace PunchedCards.Helpers
             var matchingScores = CalculateMatchingScores(bitActivityBoolArray);
             var rightLabelMatchingScore = matchingScores[label];
 
-            bool anyWrongLabel = false;
+            var anyWrongLabel = false;
 
             foreach (var wrongLabel in _labels.Where(l => matchingScores[l] > rightLabelMatchingScore))
             {
@@ -136,7 +136,7 @@ namespace PunchedCards.Helpers
         {
             var weightMatrix = CalculateWeightMatrix(bitVectors);
 
-            int maxSpanningTreesCounter = 0;
+            var maxSpanningTreesCounter = 0;
             while (true)
             {
                 var maxSpanningTreeEdges = GetMaxSpanningTreeEdges(weightMatrix);
@@ -167,7 +167,7 @@ namespace PunchedCards.Helpers
 
                 for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
-                    for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
+                    for (var secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                     {
                         weightMatrix[firstVertexIndex, secondVertexIndex, GetEdgeIndexByVertexValues(bitActivityBoolArray[firstVertexIndex], bitActivityBoolArray[secondVertexIndex])]++;
                     }
@@ -207,7 +207,7 @@ namespace PunchedCards.Helpers
         {
             var maxValidEdgeWeight = uint.MinValue;
             ValueTuple<uint, uint, byte> maxValidEdgeCoords = default;
-            bool nextMaxValidEdgeFound = false;
+            var nextMaxValidEdgeFound = false;
 
             foreach (var validEdge in validEdges)
             {
@@ -251,7 +251,7 @@ namespace PunchedCards.Helpers
         {
             for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
             {
-                for (uint secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
+                for (var secondVertexIndex = firstVertexIndex + 1; secondVertexIndex < vertexCount; secondVertexIndex++)
                 {
                     yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, FalseFalseEdgeIndex);
                     yield return ValueTuple.Create(firstVertexIndex, secondVertexIndex, TrueFalseEdgeIndex);
