@@ -46,7 +46,7 @@ namespace PunchedCards
             uint maxFineTuneIterationsCount)
         {
             Console.WriteLine();
-            Console.Write($"Average single-shot correct recognitions on fine-tune iteration: ");
+            Console.Write("Average single-shot correct recognitions on fine-tune iteration: ");
 
             double oldAverage;
             var newAverage = double.MinValue;
@@ -146,20 +146,16 @@ namespace PunchedCards
                 // Initialize puncher's map
                 puncher.GetKeys(trainingData[0].Item1.Count);
 
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
-                }
+                using var stream = File.OpenRead(fileName);
+                return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
             }
             else
             {
                 var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
                 FineTune(trainingData, puncher, expertsPerKey, 500);
 
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(expertsPerKey, stream);
-                }
+                using var stream = File.Create(fileName);
+                JsonSerializer.Serialize(expertsPerKey, stream);
 
                 return expertsPerKey;
             }

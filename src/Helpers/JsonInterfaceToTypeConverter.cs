@@ -6,7 +6,7 @@ namespace PunchedCards.Helpers
 {
     internal sealed class JsonInterfaceToTypeConverter : JsonConverter<object>
     {
-        private static readonly IReadOnlyDictionary<Type, Type> Mapping = new Dictionary<Type, Type>()
+        private static readonly IReadOnlyDictionary<Type, Type> Mapping = new Dictionary<Type, Type>
         {
             { typeof(IBitVector), typeof(BitVector) },
             { typeof(IExpert), typeof(Expert) }

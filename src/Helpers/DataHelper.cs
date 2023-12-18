@@ -27,18 +27,14 @@ namespace PunchedCards.Helpers
         {
             if (File.Exists(fileName))
             {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<ValueTuple<IBitVector, IBitVector>>>(stream);
-                }
+                using var stream = File.OpenRead(fileName);
+                return JsonSerializer.Deserialize<IReadOnlyList<ValueTuple<IBitVector, IBitVector>>>(stream);
             }
             else
             {
                 var data = ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>()).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(data, stream);
-                }
+                using var stream = File.Create(fileName);
+                JsonSerializer.Serialize(data, stream);
                 return data;
             }
         }
