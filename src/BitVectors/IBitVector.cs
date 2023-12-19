@@ -8,7 +8,7 @@
 
         IEnumerable<uint> ActiveBitIndicesSorted { get; }
 
-        bool IEquatable<IBitVector>.Equals(IBitVector other)
+        bool IEquatable<IBitVector>.Equals(IBitVector? other)
         {
             return other != null &&
                    Count.Equals(other.Count) &&
