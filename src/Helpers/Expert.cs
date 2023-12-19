@@ -12,9 +12,9 @@ namespace PunchedCards.Helpers
         private static readonly byte FalseTrueEdgeIndex = GetEdgeIndexByVertexValues(false, true);
         private static readonly byte TrueTrueEdgeIndex = GetEdgeIndexByVertexValues(true, true);
 
-        private IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
-        private IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
-        private IList<IBitVector> _labels;
+        private readonly IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> _maxSpanningTreesEdges;
+        private readonly IReadOnlyDictionary<IBitVector, uint> _maxSpanningTreesWeightSums;
+        private readonly IList<IBitVector> _labels;
 
         public Expert()
         {
@@ -47,7 +47,7 @@ namespace PunchedCards.Helpers
                 return keyValuePairs.Select(p => KeyValuePair.Create(p.Key, p.Value.Cast<IEnumerable<KeyValuePair<ValueTuple<uint, uint, byte>, int>>>()));
             }
 
-            private set
+            init
             {
                 _maxSpanningTreesEdges =
                     value as IReadOnlyDictionary<IBitVector, IEnumerable<IDictionary<ValueTuple<uint, uint, byte>, int>>> ??
@@ -66,7 +66,7 @@ namespace PunchedCards.Helpers
         {
             get => _maxSpanningTreesWeightSums;
 
-            private set
+            init
             {
                 _maxSpanningTreesWeightSums =
                     value as IReadOnlyDictionary<IBitVector, uint> ??

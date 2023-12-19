@@ -17,7 +17,7 @@ namespace PunchedCards.Helpers
             return Mapping.TryGetValue(typeToConvert, out _);
         }
 
-        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             return Mapping.TryGetValue(typeToConvert, out var returnType) ? System.Text.Json.JsonSerializer.Deserialize(ref reader, returnType, options) : null;
         }

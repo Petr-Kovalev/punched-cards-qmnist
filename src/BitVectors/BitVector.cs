@@ -6,7 +6,7 @@ namespace PunchedCards.BitVectors
     {
         private const int NumberOfValuesThreshold = 32;
 
-        private uint[] _activeBitIndicesSorted;
+        private readonly uint[] _activeBitIndicesSorted;
 
         private int _hashCode;
 
@@ -21,14 +21,14 @@ namespace PunchedCards.BitVectors
         }
 
         [JsonInclude]
-        public uint Count { get; private set; }
+        public uint Count { get; init; }
 
         [JsonInclude]
         public IEnumerable<uint> ActiveBitIndicesSorted
         {
             get => _activeBitIndicesSorted;
 
-            private set
+            init
             {
                 _activeBitIndicesSorted = value.Distinct().ToArray();
                 Array.Sort(_activeBitIndicesSorted);
