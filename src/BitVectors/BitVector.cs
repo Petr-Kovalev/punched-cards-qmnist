@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PunchedCards.BitVectors
+﻿namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
@@ -20,10 +18,8 @@ namespace PunchedCards.BitVectors
             Count = count;
         }
 
-        [JsonInclude]
         public uint Count { get; init; }
 
-        [JsonInclude]
         public IEnumerable<uint> ActiveBitIndicesSorted
         {
             get => _activeBitIndicesSorted;

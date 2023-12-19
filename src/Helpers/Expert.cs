@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using PunchedCards.BitVectors;
+﻿using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {
@@ -38,7 +37,6 @@ namespace PunchedCards.Helpers
             return new Expert(trainingData);
         }
 
-        [JsonInclude]
         public IEnumerable<KeyValuePair<IBitVector, IEnumerable<IEnumerable<KeyValuePair<ValueTuple<uint, uint, byte>, int>>>>> MaxSpanningTreesEdges
         {
             get
@@ -61,7 +59,6 @@ namespace PunchedCards.Helpers
             }
         }
 
-        [JsonInclude]
         public IEnumerable<KeyValuePair<IBitVector, uint>> MaxSpanningTreesWeightSums
         {
             get => _maxSpanningTreesWeightSums;
