@@ -35,9 +35,9 @@
             Array.IndexOf(_activeBitIndicesSorted, bitIndex) :
             Array.BinarySearch(_activeBitIndicesSorted, bitIndex)) >= 0;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return Equals(obj as IBitVector);
+            return ((IBitVector)this).Equals(obj as IBitVector);
         }
 
         public override int GetHashCode()
