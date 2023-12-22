@@ -32,7 +32,9 @@ namespace PunchedCards.Helpers
             }
             else
             {
-                var data = ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>()).ToList();
+                var data = (IReadOnlyList<ValueTuple<IBitVector, IBitVector>>)
+                    ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>())
+                        .ToList();
                 using var stream = File.Create(fileName);
                 JsonSerializer.Serialize(data, stream);
                 return data;
