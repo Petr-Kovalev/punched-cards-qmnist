@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using PunchedCards.BitVectors;
+﻿using PunchedCards.BitVectors;
 
 namespace PunchedCards.Helpers
 {

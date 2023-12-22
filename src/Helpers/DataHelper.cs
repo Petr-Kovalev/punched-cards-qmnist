@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using PunchedCards.BitVectors;
 using PunchedCards.Helpers.QMNIST;
 
@@ -31,18 +27,16 @@ namespace PunchedCards.Helpers
         {
             if (File.Exists(fileName))
             {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyList<ValueTuple<IBitVector, IBitVector>>>(stream);
-                }
+                using var stream = File.OpenRead(fileName);
+                return JsonSerializer.Deserialize<IReadOnlyList<ValueTuple<IBitVector, IBitVector>>>(stream);
             }
             else
             {
-                var data = ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>()).ToList();
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(data, stream);
-                }
+                var data = (IReadOnlyList<ValueTuple<IBitVector, IBitVector>>)
+                    ReadData(readImagesFunction, DependencyInjection.ServiceProvider.GetService<IBitVectorFactory>())
+                        .ToList();
+                using var stream = File.Create(fileName);
+                JsonSerializer.Serialize(data, stream);
                 return data;
             }
         }

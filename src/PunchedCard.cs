@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace PunchedCards
+﻿namespace PunchedCards
 {
     internal sealed class PunchedCard<TKey, TInput> : IPunchedCard<TKey, TInput>
     {
@@ -19,7 +17,7 @@ namespace PunchedCards
             return HashCode.Combine(Key, Input);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is PunchedCard<TKey, TInput> inputPunch &&
                    Key.Equals(inputPunch.Key) &&

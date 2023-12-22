@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json.Serialization;
-
-namespace PunchedCards.BitVectors
+﻿namespace PunchedCards.BitVectors
 {
     internal sealed class BitVector : IBitVector
     {
         private const int NumberOfValuesThreshold = 32;
 
-        private uint[] _activeBitIndicesSorted;
+        private readonly uint[] _activeBitIndicesSorted;
 
         private int _hashCode;
 
@@ -23,15 +18,13 @@ namespace PunchedCards.BitVectors
             Count = count;
         }
 
-        [JsonInclude]
-        public uint Count { get; private set; }
+        public uint Count { get; init; }
 
-        [JsonInclude]
         public IEnumerable<uint> ActiveBitIndicesSorted
         {
             get => _activeBitIndicesSorted;
 
-            private set
+            init
             {
                 _activeBitIndicesSorted = value.Distinct().ToArray();
                 Array.Sort(_activeBitIndicesSorted);
@@ -42,9 +35,9 @@ namespace PunchedCards.BitVectors
             Array.IndexOf(_activeBitIndicesSorted, bitIndex) :
             Array.BinarySearch(_activeBitIndicesSorted, bitIndex)) >= 0;
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return Equals(obj as IBitVector);
+            return ((IBitVector)this).Equals(obj as IBitVector);
         }
 
         public override int GetHashCode()

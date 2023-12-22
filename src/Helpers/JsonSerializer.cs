@@ -1,14 +1,14 @@
-﻿using System.IO;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace PunchedCards.Helpers
 {
     internal static class JsonSerializer
 	{
-        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new()
         {
             WriteIndented = true,
             IncludeFields = true,
+            TypeInfoResolver = SourceGenerationContext.Default,
             Converters =
                 {
                     new JsonInterfaceToTypeConverter()
@@ -22,7 +22,7 @@ namespace PunchedCards.Helpers
 
         internal static T Deserialize<T>(Stream stream)
         {
-            return System.Text.Json.JsonSerializer.Deserialize<T>(stream, JsonSerializerOptions);
+            return System.Text.Json.JsonSerializer.Deserialize<T>(stream, JsonSerializerOptions)!;
         }
     }
 }

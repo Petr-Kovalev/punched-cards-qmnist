@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
-using PunchedCards.BitVectors;
+﻿using PunchedCards.BitVectors;
 using PunchedCards.Helpers;
 
 namespace PunchedCards
@@ -51,10 +46,10 @@ namespace PunchedCards
             uint maxFineTuneIterationsCount)
         {
             Console.WriteLine();
-            Console.Write($"Average single-shot correct recognitions on fine-tune iteration: ");
+            Console.Write("Average single-shot correct recognitions on fine-tune iteration: ");
 
             double oldAverage;
-            double newAverage = double.MinValue;
+            var newAverage = double.MinValue;
 
             uint fineTuneIterationIndex = 0;
             do
@@ -64,7 +59,7 @@ namespace PunchedCards
                 var correctRecognitionCounts = new List<int>();
                 expertsPerKey.AsParallel().ForAll(expertPerKey =>
                 {
-                    int correctRecognitionCounter = 0;
+                    var correctRecognitionCounter = 0;
                     foreach (var trainingDataItem in trainingData)
                     {
                         if (!expertPerKey.Value.FineTune(puncher.Punch(expertPerKey.Key, trainingDataItem.Item1).Input, trainingDataItem.Item2))
@@ -151,20 +146,16 @@ namespace PunchedCards
                 // Initialize puncher's map
                 puncher.GetKeys(trainingData[0].Item1.Count);
 
-                using (var stream = File.OpenRead(fileName))
-                {
-                    return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
-                }
+                using var stream = File.OpenRead(fileName);
+                return JsonSerializer.Deserialize<IReadOnlyDictionary<string, IExpert>>(stream);
             }
             else
             {
                 var expertsPerKey = RecognitionHelper.CreateExperts(GetPunchedCardsPerKeyPerLabel(trainingData, puncher));
                 FineTune(trainingData, puncher, expertsPerKey, 500);
 
-                using (var stream = File.Create(fileName))
-                {
-                    JsonSerializer.Serialize(expertsPerKey, stream);
-                }
+                using var stream = File.Create(fileName);
+                JsonSerializer.Serialize(expertsPerKey, stream);
 
                 return expertsPerKey;
             }

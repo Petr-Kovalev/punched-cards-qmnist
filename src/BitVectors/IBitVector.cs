@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace PunchedCards.BitVectors
+﻿namespace PunchedCards.BitVectors
 {
     internal interface IBitVector : IEquatable<IBitVector>
     {
@@ -12,7 +8,7 @@ namespace PunchedCards.BitVectors
 
         IEnumerable<uint> ActiveBitIndicesSorted { get; }
 
-        bool IEquatable<IBitVector>.Equals(IBitVector other)
+        bool IEquatable<IBitVector>.Equals(IBitVector? other)
         {
             return other != null &&
                    Count.Equals(other.Count) &&
