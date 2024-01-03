@@ -160,7 +160,8 @@ namespace PunchedCards.Helpers
             var weightMatrix = new uint[vertexCount, vertexCount, 4];
             foreach (var bitVector in bitVectors)
             {
-                FillBitActivityBoolArray(bitVector, bitActivityBoolArray);
+                Array.Fill(bitActivityBoolArray, false);
+                SetBoolArrayActiveBits(bitVector, bitActivityBoolArray);
 
                 for (uint firstVertexIndex = 0; firstVertexIndex < vertexCount - 1; firstVertexIndex++)
                 {
@@ -293,16 +294,16 @@ namespace PunchedCards.Helpers
         {
             var bitActivityBoolArray = new bool[bitVector.Count];
 
-            FillBitActivityBoolArray(bitVector, bitActivityBoolArray);
+            SetBoolArrayActiveBits(bitVector, bitActivityBoolArray);
 
             return bitActivityBoolArray;
         }
 
-        private static void FillBitActivityBoolArray(IBitVector bitVector, bool[] bitActivityBoolArray)
+        private static void SetBoolArrayActiveBits(IBitVector bitVector, bool[] bitActivityBoolArray)
         {
-            for (uint bitIndex = 0; bitIndex < bitVector.Count; bitIndex++)
+            foreach (var activeBitIndex in bitVector.ActiveBitIndicesSorted)
             {
-                bitActivityBoolArray[bitIndex] = bitVector.IsActive(bitIndex);
+                bitActivityBoolArray[activeBitIndex] = true;
             }
         }
     }
