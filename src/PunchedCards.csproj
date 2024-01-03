@@ -5,15 +5,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <InvariantGlobalization>true</InvariantGlobalization>
-	  
+
+	<IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
     <OptimizationPreference>Speed</OptimizationPreference>
-    <PublishTrimmed>true</PublishTrimmed>
+	<StackTraceSupport>false</StackTraceSupport>
+	<InvariantGlobalization>true</InvariantGlobalization>
+	<UseSystemResourceKeys>true</UseSystemResourceKeys>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
-  
-    <IsAotCompatible>true</IsAotCompatible>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>
